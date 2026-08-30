@@ -26,6 +26,7 @@ export default function ReviewPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [pendingCat, setPendingCat] = useState<number | null>(null); // category id whose subs are being shown
   const [flash, setFlash] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -45,34 +46,48 @@ export default function ReviewPage() {
   const current = queue[idx];
 
   const assign = useCallback(
-    async (categoryId: number) => {
+    async (categoryId: number, subcategoryId?: number | null) => {
       if (!current) return;
       const cat = categories.find((c) => c.id === categoryId);
+      const sub = cat?.subcategories.find((s) => s.id === subcategoryId);
       await fetch(`/api/transactions/${current.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: 'always', categoryId, reapply: true }),
+        body: JSON.stringify({ mode: 'always', categoryId, subcategoryId: subcategoryId ?? null, reapply: true }),
       });
-      setFlash(`${current.label} → ${cat?.name}`);
+      setFlash(`${current.label} → ${cat?.name}${sub ? ' › ' + sub.name : ''}`);
+      setPendingCat(null);
       setIdx((i) => i + 1);
     },
     [current, categories],
   );
 
-  const skip = useCallback(() => setIdx((i) => i + 1), []);
+  const skip = useCallback(() => { setPendingCat(null); setIdx((i) => i + 1); }, []);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (editing || !current) return;
+      // Subcategory step: 1-9 picks a sub, Enter/0 saves just the category, Esc backs out.
+      if (pendingCat != null) {
+        const cat = categories.find((c) => c.id === pendingCat);
+        if (!cat) return;
+        if (e.key >= '1' && e.key <= '9') {
+          const n = Number(e.key) - 1;
+          if (cat.subcategories[n]) assign(cat.id, cat.subcategories[n].id);
+        } else if (e.key === 'Enter' || e.key === '0') assign(cat.id);
+        else if (e.key === 'Escape') setPendingCat(null);
+        return;
+      }
       if (e.key >= '1' && e.key <= '9') {
         const n = Number(e.key) - 1;
-        if (categories[n]) assign(categories[n].id);
+        const c = categories[n];
+        if (c) (c.subcategories.length > 0 ? setPendingCat(c.id) : assign(c.id));
       } else if (e.key.toLowerCase() === 'e') setEditing(true);
       else if (e.key.toLowerCase() === 's') skip();
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, editing, categories, assign, skip]);
+  }, [current, editing, pendingCat, categories, assign, skip]);
 
   if (loading) return <div className="text-muted py-16 text-center animate-fade-in">Loading…</div>;
 
@@ -139,27 +154,52 @@ export default function ReviewPage() {
               onDone={() => { setEditing(false); setIdx((i) => i + 1); }}
               onCancel={() => setEditing(false)}
             />
+          ) : pendingCat != null ? (
+            (() => {
+              const cat = categories.find((c) => c.id === pendingCat);
+              if (!cat) return null;
+              return (
+                <div className="space-y-3">
+                  <div className="text-sm text-muted">
+                    Pick a subcategory for <span className="font-medium text-text">{cat.name}</span>, or save without one:
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                    {cat.subcategories.map((s) => (
+                      <button key={s.id} onClick={() => assign(cat.id, s.id)} className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-accent">
+                        {s.name}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 text-sm">
+                    <button onClick={() => assign(cat.id)} className="btn-primary px-3 py-1.5">Just “{cat.name}”</button>
+                    <button onClick={() => setPendingCat(null)} className="btn-ghost">← Back</button>
+                  </div>
+                </div>
+              );
+            })()
           ) : (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                 {categories.map((c, i) => {
                   const color = PALETTE[i % PALETTE.length];
+                  const hasSubs = c.subcategories.length > 0;
                   return (
                     <button
                       key={c.id}
-                      onClick={() => assign(c.id)}
+                      onClick={() => (hasSubs ? setPendingCat(c.id) : assign(c.id))}
                       className="group flex items-center gap-2.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-transparent"
                       style={{ ['--c' as string]: color }}
                     >
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-semibold text-white" style={{ background: color }}>{i < 9 ? i + 1 : '·'}</span>
-                      <span className="truncate font-medium">{c.name}</span>
+                      <span className="truncate font-medium flex-1">{c.name}</span>
+                      {hasSubs && <span className="text-muted text-xs">›</span>}
                     </button>
                   );
                 })}
               </div>
               <div className="flex gap-2 text-sm">
                 <button onClick={() => setEditing(true)} className="btn-outline px-3 py-1.5">
-                  <kbd className="mr-1 rounded bg-surface-2 px-1 text-xs">e</kbd> Subcategory / one-off
+                  <kbd className="mr-1 rounded bg-surface-2 px-1 text-xs">e</kbd> One-off (this txn only)
                 </button>
                 <button onClick={skip} className="btn-ghost">
                   <kbd className="mr-1 rounded bg-surface-2 px-1 text-xs">s</kbd> Skip

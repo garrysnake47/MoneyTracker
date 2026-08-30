@@ -113,7 +113,7 @@ export default function OverviewPage() {
           {/* Trend + health */}
           <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-4" delay={40}>
             <section className="card lift md:col-span-2 p-5">
-              <h2 className="text-sm font-semibold mb-3">Money in vs spend · last 8 weeks</h2>
+              <h2 className="text-sm font-semibold mb-3">Money in vs spend · {monthLabel(month)}</h2>
               <TrendChart data={data.trend} />
             </section>
             <section className="card lift p-5 flex flex-col">

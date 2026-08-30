@@ -23,6 +23,8 @@ model User {
   salaryEnabled Boolean  @default(false) @map("salary_enabled")
   salaryAmount  Decimal? @db.Decimal(12, 2) @map("salary_amount")
   salaryDay     Int      @default(1) @map("salary_day")
+  // Extra bank alert sender addresses this user wants tracked (beyond the built-ins).
+  customSenders String[] @default([]) @map("custom_senders")
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("users")

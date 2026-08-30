@@ -150,39 +150,28 @@ export async function getTrend(userId: number, endMonth: string, months = 6): Pr
 }
 
 /**
- * Spend + income per week over the last `weeks` weeks, anchored to the end of
- * `endMonth` (or today when endMonth is the current month). Weeks start Monday.
+ * Spend + income for the SELECTED month, split into calendar weeks
+ * (1–7, 8–14, 15–21, 22–28, 29–end). A new month starts empty and fills up.
  */
-export async function getWeeklyTrend(userId: number, endMonth: string, weeks = 8): Promise<TrendPoint[]> {
+export async function getWeeklyTrend(userId: number, month: string): Promise<TrendPoint[]> {
   const flags = await expenseFlagMap();
-  const now = new Date();
-  const [ey, em] = endMonth.split('-').map(Number);
-  const isCurrent = endMonth === currentMonth();
-  // Anchor = today (current month) or the last day of the selected month.
-  const anchor = isCurrent ? now : new Date(ey, em, 0);
+  const { start, end } = monthBounds(month);
+  const [ey, em] = month.split('-').map(Number);
+  const daysInMonth = new Date(ey, em, 0).getDate();
 
-  // Monday of the anchor's week.
-  const day = (anchor.getDay() + 6) % 7; // 0 = Monday
-  const thisMonday = new Date(anchor.getFullYear(), anchor.getMonth(), anchor.getDate() - day);
-  const start = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() - (weeks - 1) * 7);
-  const end = new Date(thisMonday.getFullYear(), thisMonday.getMonth(), thisMonday.getDate() + 7); // exclusive
+  // Week buckets by day-of-month range.
+  const ranges: [number, number][] = [];
+  for (let d = 1; d <= daysInMonth; d += 7) ranges.push([d, Math.min(d + 6, daysInMonth)]);
+  const buckets: TrendPoint[] = ranges.map(([a, b]) => ({ month: `${month}-${a}`, label: `${a}–${b}`, spend: 0, income: 0 }));
 
   const txns = await prisma.transaction.findMany({
     where: { userId, occurredAt: { gte: start, lt: end } },
     select: { amount: true, direction: true, occurredAt: true, categoryId: true, subcategoryId: true },
   });
 
-  const buckets: TrendPoint[] = [];
-  const bucketStart: Date[] = [];
-  for (let i = 0; i < weeks; i++) {
-    const ws = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i * 7);
-    bucketStart.push(ws);
-    buckets.push({ month: ws.toISOString().slice(0, 10), label: ws.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }), spend: 0, income: 0 });
-  }
-
   for (const t of txns) {
-    const idx = Math.floor((t.occurredAt.getTime() - start.getTime()) / (7 * 24 * 3600 * 1000));
-    if (idx < 0 || idx >= weeks) continue;
+    const dayOfMonth = t.occurredAt.getDate();
+    const idx = Math.min(ranges.length - 1, Math.floor((dayOfMonth - 1) / 7));
     const b = buckets[idx];
     const amt = Number(t.amount);
     if (t.direction === 'credit') {

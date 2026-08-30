@@ -10,6 +10,6 @@ export async function GET(req: NextRequest) {
 
   const month = req.nextUrl.searchParams.get('month') || currentMonth();
   if (!/^\d{4}-\d{2}$/.test(month)) return NextResponse.json({ error: 'month must be YYYY-MM' }, { status: 400 });
-  const [overview, trend] = await Promise.all([getMonthlyOverview(userId, month), getWeeklyTrend(userId, month, 8)]);
+  const [overview, trend] = await Promise.all([getMonthlyOverview(userId, month), getWeeklyTrend(userId, month)]);
   return NextResponse.json({ ...overview, trend });
 }

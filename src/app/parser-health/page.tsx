@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { fmtDateTime } from '@/lib/format';
+import TrackedBanks from '@/components/TrackedBanks';
 
 interface Health {
   statusCounts: Record<string, number>;
@@ -43,6 +44,8 @@ export default function ParserHealthPage() {
           {reparsing ? 'Re-parsing…' : 'Re-parse pending'}
         </button>
       </header>
+
+      <TrackedBanks />
 
       {loading || !data ? (
         <div className="text-muted">Loading…</div>

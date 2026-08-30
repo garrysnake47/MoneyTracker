@@ -55,11 +55,14 @@ export default function TransactionsPage() {
   const [editing, setEditing] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
 
+  // Default to the current month (a new month starts fresh); "All time" clears it.
+  const monthStart = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
+
   // filters
   const [merchant, setMerchant] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [direction, setDirection] = useState('');
-  const [from, setFrom] = useState('');
+  const [from, setFrom] = useState(monthStart);
   const [to, setTo] = useState('');
 
   const load = useCallback(async () => {
@@ -100,14 +103,20 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between animate-fade-up">
+      <header className="flex items-center justify-between gap-3 animate-fade-up">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
-          <p className="text-sm text-muted">{total} total · newest first</p>
+          <p className="text-sm text-muted">{total} shown · newest first</p>
         </div>
-        <button onClick={() => setAdding(true)} className="btn-primary px-4 py-2">
-          <span className="text-base leading-none">+</span> Add
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5 text-sm">
+            <button onClick={() => { setPage(1); setFrom(monthStart); setTo(''); }} className={`px-3 py-1 rounded-md ${from === monthStart && !to ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>This month</button>
+            <button onClick={() => { setPage(1); setFrom(''); setTo(''); }} className={`px-3 py-1 rounded-md ${!from ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>All time</button>
+          </div>
+          <button onClick={() => setAdding(true)} className="btn-primary px-4 py-2">
+            <span className="text-base leading-none">+</span> Add
+          </button>
+        </div>
       </header>
 
       {/* Filters */}
