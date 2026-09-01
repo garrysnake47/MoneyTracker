@@ -77,7 +77,7 @@ export default function BudgetPage() {
       </header>
 
       {/* Summary */}
-      <Reveal className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      <Reveal className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <div className="card p-4">
           <div className="text-xs text-muted">Total budget</div>
           <div className="text-xl font-bold tabular mt-1">{inr(totalBudget)}</div>
@@ -97,7 +97,7 @@ export default function BudgetPage() {
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
           <div>
             <label className="block text-xs text-muted mb-1.5">Category</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="input">
+            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="select">
               <option value="">— Category —</option>
               {available.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
@@ -106,7 +106,7 @@ export default function BudgetPage() {
             <label className="block text-xs text-muted mb-1.5">Monthly budget (₹)</label>
             <input value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} inputMode="decimal" placeholder="e.g. 15000" className="input tabular" />
           </div>
-          <button onClick={add} disabled={busy} className="btn-primary h-[38px]">Add budget</button>
+          <button onClick={add} disabled={busy} className="btn-primary h-[42px] w-full sm:w-auto">Add budget</button>
         </div>
         {msg && <div className="mt-3 text-xs text-debit">{msg}</div>}
       </Reveal>

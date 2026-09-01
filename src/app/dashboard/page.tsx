@@ -85,7 +85,7 @@ export default function OverviewPage() {
           <p className="text-sm text-muted">Spend excludes transfers, EMIs counted, card bills netted out. Credit-card charges count as spend but not as account outflow.</p>
         </div>
         <div className="flex items-center gap-3">
-          <select value={month} onChange={(e) => setMonth(e.target.value)} className="input w-auto rounded-full">
+          <select value={month} onChange={(e) => setMonth(e.target.value)} className="select w-auto rounded-full">
             {months.map((m) => (
               <option key={m} value={m}>{monthLabel(m)}</option>
             ))}
@@ -99,7 +99,7 @@ export default function OverviewPage() {
       ) : (
         <>
           {/* KPI tiles — each a distinct color */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <KpiCard label="Total spend" value={inr(data.totalSpend)} icon="wallet" tone="ink" delay={0}>
               {data.deltaPct != null && (
                 <span>{data.deltaPct > 0 ? '▲' : '▼'} {Math.abs(data.deltaPct)}% vs last month</span>

@@ -45,6 +45,22 @@ async function expenseFlagMap(): Promise<Map<number, boolean>> {
   return new Map(cats.map((c) => [c.id, c.isExpense]));
 }
 
+/**
+ * Category ids under "Transfers" (the top-level row and its children).
+ *
+ * Transfers are is_expense = false, which already keeps outgoing transfers out
+ * of spend — but income shares that flag, so a credit needs this set to tell
+ * "money you earned" from "money you moved between your own accounts".
+ */
+async function transferCategoryIds(): Promise<Set<number>> {
+  const root = await prisma.category.findFirst({
+    where: { name: 'Transfers', parentId: null },
+    select: { id: true, children: { select: { id: true } } },
+  });
+  if (!root) return new Set();
+  return new Set([root.id, ...root.children.map((c) => c.id)]);
+}
+
 export function currentMonth(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -216,6 +232,7 @@ export async function getWeeklyCategorySpend(userId: number, month: string): Pro
 
 export async function getMonthlyOverview(userId: number, month: string): Promise<MonthlyOverview> {
   const flags = await expenseFlagMap();
+  const transferIds = await transferCategoryIds();
   const { start, end } = monthBounds(month);
 
   const prev = new Date(start);
@@ -242,8 +259,12 @@ export async function getMonthlyOverview(userId: number, month: string): Promise
     const amt = Number(t.amount);
     if (t.direction === 'credit') {
       // Money in = what reached the bank account. A credit on a credit card is a
-      // refund/reversal against the card, not income.
-      if (!t.isCreditCard) {
+      // refund/reversal against the card, not income; a credit categorised as a
+      // Transfer is your own money arriving from your own account, not income.
+      const isTransferIn =
+        (t.subcategoryId != null && transferIds.has(t.subcategoryId)) ||
+        (t.categoryId != null && transferIds.has(t.categoryId));
+      if (!t.isCreditCard && !isTransferIn) {
         totalMoneyIn += amt;
         // Income breakdown: by category when set, else by label (e.g. "Salary").
         const src = t.category?.name || t.displayLabel || 'Other income';

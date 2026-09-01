@@ -141,18 +141,20 @@ export default function ReviewPage() {
           {/* Transaction card */}
           <div key={current.id} className="card p-6 animate-pop relative overflow-hidden">
             <div className={`absolute left-0 inset-y-0 w-1 ${current.direction === 'debit' ? 'bg-debit' : 'bg-credit'}`} />
-            <div className="flex items-start justify-between gap-3 pl-2">
-              <div className="min-w-0">
-                <div className="text-2xl font-extrabold tracking-tight truncate">{current.label}</div>
-                <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted font-mono">
+            {/* Amount leads on phones; beside the merchant once there's room —
+                side-by-side at 320px squeezed the meta line to one word a row. */}
+            <div className="flex flex-col gap-2 pl-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+              <div className="order-2 min-w-0 sm:order-1">
+                <div className="truncate text-xl font-extrabold tracking-tight sm:text-2xl">{current.label}</div>
+                <div className="mt-1.5 inline-flex max-w-full items-center gap-1.5 truncate rounded-md bg-surface-2 px-2 py-0.5 font-mono text-xs text-muted">
                   {current.rawMerchant}
                 </div>
-                <div className="text-xs text-muted mt-1.5">
+                <div className="mt-1.5 text-xs text-muted">
                   {fmtDateTime(current.occurredAt)} · {current.instrument}
                   {current.llmConfidence != null ? ` · AI ${Math.round(current.llmConfidence * 100)}%` : ''}
                 </div>
               </div>
-              <div className={`text-[32px] font-extrabold tabular shrink-0 ${current.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
+              <div className={`order-1 shrink-0 text-[26px] font-extrabold tabular sm:order-2 sm:text-[32px] ${current.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
                 {current.direction === 'debit' ? '−' : '+'}{inr(current.amount)}
               </div>
             </div>
@@ -177,7 +179,7 @@ export default function ReviewPage() {
                   <div className="text-sm text-muted">
                     Pick a subcategory for <span className="font-medium text-text">{cat.name}</span>, or save without one:
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
                     {cat.subcategories.map((s) => (
                       <button key={s.id} onClick={() => assign(cat.id, s.id)} className="rounded-2xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-accent">
                         {s.name}
@@ -194,12 +196,12 @@ export default function ReviewPage() {
           ) : (
             <>
               {/* Expense / Income sides of the taxonomy */}
-              <div className="inline-flex rounded-full border border-border bg-surface-2 p-1 text-sm">
+              <div className="inline-flex w-full rounded-full border border-border bg-surface-2 p-1 text-sm sm:w-auto">
                 {(['expense', 'income'] as const).map((v) => (
                   <button
                     key={v}
                     onClick={() => { setSide(v); setPendingCat(null); }}
-                    className={`px-5 py-1.5 rounded-full capitalize transition-all ${side === v ? 'bg-[rgb(var(--ink))] text-white font-semibold' : 'text-muted hover:text-text'}`}
+                    className={`flex-1 rounded-full px-5 py-1.5 capitalize transition-all sm:flex-none ${side === v ? 'bg-[rgb(var(--ink))] text-white font-semibold' : 'text-muted hover:text-text'}`}
                   >
                     {v}
                     <kbd className="ml-1.5 text-[10px] opacity-60">{v === 'income' ? 'i' : 'x'}</kbd>
@@ -207,7 +209,7 @@ export default function ReviewPage() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                 {visible.map((c, i) => {
                   const color = PALETTE[i % PALETTE.length];
                   const hasSubs = c.subcategories.length > 0;

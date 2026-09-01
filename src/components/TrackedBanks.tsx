@@ -78,14 +78,16 @@ export default function TrackedBanks() {
                 {b.senders.map((s) => (
                   <span
                     key={s.address}
-                    className={`inline-flex items-center gap-1 rounded-full border pl-3 pr-1 py-1 text-xs font-mono transition-colors ${
+                    // A long sender can't wrap inside a pill, so cap the pill at
+                    // the card width and let the address itself truncate.
+                    className={`inline-flex max-w-full items-center gap-1 rounded-full border py-1 pl-3 pr-1 font-mono text-xs transition-colors ${
                       s.enabled ? 'bg-surface border-border text-text' : 'bg-transparent border-dashed border-border text-muted line-through'
                     }`}
                   >
-                    {s.address}
+                    <span className="min-w-0 truncate" title={s.address}>{s.address}</span>
                     <button
                       onClick={() => toggle(s.address, !s.enabled)}
-                      className={`h-5 w-5 rounded-full grid place-items-center text-sm leading-none transition-colors ${
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-sm leading-none transition-colors ${
                         s.enabled ? 'text-muted hover:bg-debit hover:text-white' : 'text-muted hover:bg-credit hover:text-white'
                       }`}
                       aria-label={s.enabled ? `Stop scanning ${s.address}` : `Scan ${s.address} again`}
@@ -109,16 +111,16 @@ export default function TrackedBanks() {
         ) : (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {custom.map((s) => (
-              <span key={s} className="inline-flex items-center gap-1 rounded-full bg-sand border border-border pl-3 pr-1 py-1 text-xs font-mono text-text">
-                {s}
-                <button onClick={() => remove(s)} className="h-5 w-5 rounded-full grid place-items-center text-muted hover:text-white hover:bg-debit" aria-label={`Remove ${s}`}>×</button>
+              <span key={s} className="inline-flex max-w-full items-center gap-1 rounded-full border border-border bg-sand py-1 pl-3 pr-1 font-mono text-xs text-text">
+                <span className="min-w-0 truncate" title={s}>{s}</span>
+                <button onClick={() => remove(s)} className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted hover:bg-debit hover:text-white" aria-label={`Remove ${s}`}>×</button>
               </span>
             ))}
           </div>
         )}
-        <div className="flex gap-2">
-          <input value={sender} onChange={(e) => setSender(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="e.g. alerts@yourbank.com" className="input flex-1" />
-          <button onClick={add} disabled={busy} className="btn-primary px-4 py-2">Add</button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input value={sender} onChange={(e) => setSender(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="e.g. alerts@yourbank.com" className="input sm:flex-1" />
+          <button onClick={add} disabled={busy} className="btn-primary shrink-0 px-4 py-2">Add</button>
         </div>
         {msg && <div className="mt-2 text-xs text-credit">{msg}</div>}
         <p className="mt-2 text-[11px] text-muted">

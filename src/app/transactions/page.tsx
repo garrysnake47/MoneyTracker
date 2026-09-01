@@ -27,6 +27,18 @@ interface Txn {
   isCreditCard: boolean;
 }
 
+interface DeletedTxn {
+  id: number;
+  occurredAt: string;
+  amount: string;
+  direction: 'debit' | 'credit';
+  merchant: string;
+  label: string;
+  instrument: string;
+  accountLast4: string | null;
+  deletedAt: string;
+}
+
 // All formatting is pinned to IST so grouping and headings never disagree
 // (bank times are IST; the server/browser timezone must not split a day).
 const IST = 'Asia/Kolkata';
@@ -56,6 +68,12 @@ export default function TransactionsPage() {
   const [editing, setEditing] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
 
+  // Deleted transactions live behind their own toggle on this page: they are
+  // tombstoned (never re-imported by a sync) until restored.
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [deleted, setDeleted] = useState<DeletedTxn[]>([]);
+  const [deletedLoading, setDeletedLoading] = useState(false);
+
   // Default to the current month (a new month starts fresh); "All time" clears it.
   const monthStart = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
 
@@ -81,17 +99,43 @@ export default function TransactionsPage() {
     setLoading(false);
   }, [page, merchant, categoryId, direction, from, to]);
 
+  const loadDeleted = useCallback(async () => {
+    setDeletedLoading(true);
+    const res = await fetch('/api/transactions/deleted');
+    const data = await res.json();
+    setDeleted(data.items ?? []);
+    setDeletedLoading(false);
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    if (showDeleted) loadDeleted();
+  }, [showDeleted, loadDeleted]);
+
   async function remove(t: Txn) {
-    if (!confirm(`Delete "${t.label}" (${inr(t.amount)})? This can't be undone.`)) return;
+    if (!confirm(`Delete "${t.label}" (${inr(t.amount)})?\n\nIt won't come back on the next sync. You can restore it from "Deleted".`)) return;
     const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
     if (res.ok) {
       if (editing === t.id) setEditing(null);
       await load();
+      if (showDeleted) await loadDeleted();
     }
+  }
+
+  async function restore(d: DeletedTxn) {
+    const res = await fetch(`/api/transactions/deleted/${d.id}`, { method: 'POST' });
+    if (res.ok) {
+      await Promise.all([load(), loadDeleted()]);
+    }
+  }
+
+  async function forget(d: DeletedTxn) {
+    if (!confirm(`Forget "${d.label}" permanently?\n\nThe tombstone is removed, so a future sync may import it again.`)) return;
+    const res = await fetch(`/api/transactions/deleted/${d.id}`, { method: 'DELETE' });
+    if (res.ok) await loadDeleted();
   }
 
   async function setCreditCard(t: Txn, isCreditCard: boolean) {
@@ -128,17 +172,18 @@ export default function TransactionsPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between gap-3 animate-fade-up">
+      <header className="animate-fade-up flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Transactions</h1>
           <p className="text-sm text-muted">{total} shown · newest first</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5 text-sm">
-            <button onClick={() => { setPage(1); setFrom(monthStart); setTo(''); }} className={`px-3 py-1 rounded-md ${from === monthStart && !to ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>This month</button>
-            <button onClick={() => { setPage(1); setFrom(''); setTo(''); }} className={`px-3 py-1 rounded-md ${!from ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>All time</button>
+          {/* Segmented range switch — splits the row evenly on phones. */}
+          <div className="inline-flex flex-1 rounded-full border border-border bg-surface-2 p-0.5 text-sm sm:flex-none">
+            <button onClick={() => { setPage(1); setFrom(monthStart); setTo(''); }} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 sm:flex-none ${from === monthStart && !to ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>This month</button>
+            <button onClick={() => { setPage(1); setFrom(''); setTo(''); }} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 sm:flex-none ${!from ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>All time</button>
           </div>
-          <button onClick={() => setAdding(true)} className="btn-primary px-4 py-2">
+          <button onClick={() => setAdding(true)} className="btn-primary shrink-0 px-4 py-2">
             <span className="text-base leading-none">+</span> Add
           </button>
         </div>
@@ -146,22 +191,24 @@ export default function TransactionsPage() {
 
       {/* Filters */}
       <div className="card p-3 sm:p-4 animate-fade-up" style={{ animationDelay: '60ms' }}>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
-          <div className="relative col-span-2 sm:col-span-1">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+          <div className="relative sm:col-span-1">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
             <input placeholder="Search merchant…" value={merchant} onChange={(e) => { setPage(1); setMerchant(e.target.value); }} className="input pl-9" />
           </div>
-          <select value={categoryId} onChange={(e) => { setPage(1); setCategoryId(e.target.value); }} className="input">
+          <select value={categoryId} onChange={(e) => { setPage(1); setCategoryId(e.target.value); }} className="select">
             <option value="">All categories</option>
             {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
           </select>
-          <select value={direction} onChange={(e) => { setPage(1); setDirection(e.target.value); }} className="input">
+          <select value={direction} onChange={(e) => { setPage(1); setDirection(e.target.value); }} className="select">
             <option value="">Income &amp; expense</option>
             <option value="debit">Expense only</option>
             <option value="credit">Income only</option>
           </select>
-          <input type="date" value={from} onChange={(e) => { setPage(1); setFrom(e.target.value); }} className="input" aria-label="From date" />
-          <input type="date" value={to} onChange={(e) => { setPage(1); setTo(e.target.value); }} className="input" aria-label="To date" />
+          <div className="grid grid-cols-2 gap-2.5 sm:contents">
+            <input type="date" value={from} onChange={(e) => { setPage(1); setFrom(e.target.value); }} className="input" aria-label="From date" />
+            <input type="date" value={to} onChange={(e) => { setPage(1); setTo(e.target.value); }} className="input" aria-label="To date" />
+          </div>
         </div>
         {(merchant || categoryId || direction || from || to) && (
           <button
@@ -259,6 +306,64 @@ export default function TransactionsPage() {
           <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)} className="rounded-md border border-border px-3 py-1.5 text-sm disabled:opacity-40">Next →</button>
         </div>
       )}
+
+      {/* ── Deleted ─────────────────────────────────────────────────────── */}
+      <section className="pt-2">
+        <button
+          onClick={() => setShowDeleted((v) => !v)}
+          className="flex w-full items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-surface-2"
+        >
+          <span className={`text-muted transition-transform duration-200 ${showDeleted ? 'rotate-90' : ''}`}>›</span>
+          Deleted transactions
+          {deleted.length > 0 && (
+            <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-bold text-muted">{deleted.length}</span>
+          )}
+          <span className="ml-auto text-xs font-normal text-muted">
+            {showDeleted ? 'Hide' : 'Show'}
+          </span>
+        </button>
+
+        {showDeleted && (
+          <div className="mt-2.5 space-y-2.5">
+            <p className="px-1 text-xs text-muted">
+              These stay out of your totals and are never re-imported by a sync. Restore one to bring it back.
+            </p>
+
+            {deletedLoading ? (
+              <div className="py-6 text-center text-sm text-muted">Loading…</div>
+            ) : deleted.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border py-8 text-center text-sm text-muted">
+                Nothing deleted yet.
+              </div>
+            ) : (
+              deleted.map((d) => (
+                <div key={d.id} className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className="truncate text-sm font-semibold text-muted line-through">{d.label}</span>
+                      <span className="shrink-0 text-sm font-bold tabular text-muted line-through">
+                        {d.direction === 'debit' ? '−' : '+'}{inr(d.amount)}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted">
+                      {dayHeading(d.occurredAt)} · {timeOf(d.occurredAt)}
+                      {d.instrument !== 'unknown' ? ` · ${d.instrument}` : ''}
+                      {d.accountLast4 ? ` · ••${d.accountLast4}` : ''}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-muted/70">
+                      Deleted {dayHeading(d.deletedAt)}
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 gap-2">
+                    <button onClick={() => restore(d)} className="btn-outline px-3 py-1.5 text-xs">Restore</button>
+                    <button onClick={() => forget(d)} className="btn-ghost px-3 py-1.5 text-xs">Forget</button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </section>
 
       {adding && <AddTransaction onAdded={load} onClose={() => setAdding(false)} />}
     </div>

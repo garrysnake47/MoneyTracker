@@ -73,6 +73,30 @@ async function wasDeleted(userId: number, txn: ParsedTxn) {
   return tombstones.some((t) => !(txn.accountLast4 && t.accountLast4 && txn.accountLast4 !== t.accountLast4));
 }
 
+/**
+ * The month's auto-salary placeholder, when this credit looks like the real
+ * salary landing: same calendar month and within 1% of the configured amount
+ * (banks round, and allowances shift the figure slightly month to month).
+ */
+async function findSalaryPlaceholder(userId: number, txn: ParsedTxn) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { salaryEnabled: true, salaryAmount: true },
+  });
+  if (!user?.salaryEnabled || user.salaryAmount == null) return null;
+
+  const expected = Number(user.salaryAmount);
+  if (expected <= 0) return null;
+  if (Math.abs(txn.amount - expected) > expected * 0.01) return null;
+
+  const monthStart = new Date(Date.UTC(txn.occurredAt.getUTCFullYear(), txn.occurredAt.getUTCMonth(), 1));
+  const monthEnd = new Date(Date.UTC(txn.occurredAt.getUTCFullYear(), txn.occurredAt.getUTCMonth() + 1, 1));
+
+  return prisma.transaction.findFirst({
+    where: { userId, source: 'salary', occurredAt: { gte: monthStart, lt: monthEnd } },
+  });
+}
+
 /** A richer merchant string is simply the longer, more descriptive one. */
 function richer(a: string, b: string): string {
   return b.length > a.length ? b : a;
@@ -116,16 +140,37 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
 
       const txn = result.txn;
 
-      // Skip income credits from email — the user enters income manually and the
-      // salary is auto-credited on the 1st. This avoids double-counting the
-      // salary (which the bank also emails) and self-transfers.
-      if (txn.direction === 'credit') {
-        await prisma.rawEmail.update({ where: { id: email.id }, data: { parseStatus: 'ignored', parseError: 'credit skipped — income entered manually' } });
-        res.ignored++;
-        continue;
-      }
-
       const merchant = normalizeMerchant(txn.rawMerchant);
+
+      // A real salary credit lands as its own email, but ensureSalaryCredit()
+      // may already have posted a placeholder for the month. Fill the
+      // placeholder in rather than counting the salary twice.
+      if (txn.direction === 'credit') {
+        const placeholder = await findSalaryPlaceholder(email.userId, txn);
+        if (placeholder) {
+          await prisma.transaction.update({
+            where: { id: placeholder.id },
+            data: {
+              rawEmailId: email.id,
+              source: 'gmail',
+              amount: new Prisma.Decimal(txn.amount),
+              occurredAt: txn.occurredAt,
+              rawMerchant: txn.rawMerchant,
+              merchant,
+              accountLast4: txn.accountLast4,
+              instrument: txn.instrument,
+              referenceId: txn.referenceId,
+            },
+          });
+          await prisma.rawEmail.update({
+            where: { id: email.id },
+            data: { parseStatus: 'parsed', parseError: `filled salary placeholder ${placeholder.id}` },
+          });
+          console.log(`[parse] raw_email ${email.id} filled salary placeholder ${placeholder.id}`);
+          res.merged++;
+          continue;
+        }
+      }
 
       if (await wasDeleted(email.userId, txn)) {
         await prisma.rawEmail.update({
