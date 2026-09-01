@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SESSION_COOKIE, verifySession } from '@/lib/auth';
 
-// Paths reachable without a session.
-const PUBLIC = ['/login', '/signup', '/api/login', '/api/signup', '/api/logout', '/manifest.json', '/sw.js', '/icons'];
+// Reachable without a session. EXACT is matched whole ('/' must never be
+// treated as a prefix, or every route would be public); PREFIX matches subpaths.
+const PUBLIC_EXACT = ['/', '/manifest.json', '/sw.js'];
+const PUBLIC_PREFIX = ['/login', '/signup', '/api/login', '/api/signup', '/api/logout', '/icons'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  if (PUBLIC.some((p) => pathname === p || pathname.startsWith(p + '/') || pathname.startsWith(p))) {
+  if (PUBLIC_EXACT.includes(pathname) || PUBLIC_PREFIX.some((p) => pathname === p || pathname.startsWith(p + '/'))) {
     return NextResponse.next();
   }
 

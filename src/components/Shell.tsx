@@ -8,7 +8,7 @@ import AutoSync from './AutoSync';
 // Full-bleed layout for auth pages; app chrome (nav + banner) for everything else.
 export default function Shell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const bare = pathname === '/login' || pathname === '/signup';
+  const bare = pathname === '/' || pathname === '/login' || pathname === '/signup';
 
   if (bare) return <>{children}</>;
 

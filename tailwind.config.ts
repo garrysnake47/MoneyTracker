@@ -31,6 +31,9 @@ const config: Config = {
         sans: ['var(--font-sans)', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['var(--font-mono)', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
+      screens: {
+        xs: '420px',
+      },
       borderRadius: {
         '4xl': '1.75rem',
       },

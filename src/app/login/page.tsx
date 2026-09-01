@@ -22,7 +22,7 @@ function LoginForm() {
       body: JSON.stringify({ email, password }),
     });
     if (res.ok) {
-      router.push(params.get('next') || '/');
+      router.push(params.get('next') || '/dashboard');
       router.refresh();
     } else {
       // A 5xx from the server is an HTML page, not JSON — don't let the parse

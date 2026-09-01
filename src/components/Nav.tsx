@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import Icon from './Icon';
 
 const LINKS = [
-  { href: '/', label: 'Overview', icon: 'overview' },
+  { href: '/dashboard', label: 'Overview', icon: 'overview' },
   { href: '/transactions', label: 'Transactions', icon: 'transactions' },
   { href: '/budget', label: 'Budget', icon: 'budget' },
   { href: '/credit-card', label: 'Credit Card', icon: 'creditcard' },
@@ -21,7 +21,7 @@ export default function Nav() {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
 
   // Close the drawer whenever the route changes.
   useEffect(() => {
