@@ -5,6 +5,9 @@
  * Includes §5.3 deduplication: one purchase can generate several messages, so
  * before inserting we look for an existing transaction matching amount +
  * ±3-minute window + direction + (account_last4 when both present).
+ *
+ * The same fingerprint is checked against deleted_transactions, so a row the
+ * user removed is not resurrected by a sibling alert on the next pass.
  */
 import { Prisma } from '@prisma/client';
 import { prisma } from './db';
@@ -47,6 +50,27 @@ async function findDuplicate(userId: number, txn: ParsedTxn) {
     return c;
   }
   return null;
+}
+
+/**
+ * True when the user has already deleted this transaction. Uses the same
+ * fingerprint as findDuplicate so a second alert for a deleted purchase — or a
+ * re-parse of the mailbox — cannot bring it back.
+ */
+async function wasDeleted(userId: number, txn: ParsedTxn) {
+  const lo = new Date(txn.occurredAt.getTime() - DEDUPE_WINDOW_MS);
+  const hi = new Date(txn.occurredAt.getTime() + DEDUPE_WINDOW_MS);
+
+  const tombstones = await prisma.deletedTransaction.findMany({
+    where: {
+      userId,
+      amount: new Prisma.Decimal(txn.amount),
+      direction: txn.direction,
+      occurredAt: { gte: lo, lte: hi },
+    },
+  });
+
+  return tombstones.some((t) => !(txn.accountLast4 && t.accountLast4 && txn.accountLast4 !== t.accountLast4));
 }
 
 /** A richer merchant string is simply the longer, more descriptive one. */
@@ -102,6 +126,15 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
       }
 
       const merchant = normalizeMerchant(txn.rawMerchant);
+
+      if (await wasDeleted(email.userId, txn)) {
+        await prisma.rawEmail.update({
+          where: { id: email.id },
+          data: { parseStatus: 'ignored', parseError: 'deleted by user' },
+        });
+        res.ignored++;
+        continue;
+      }
 
       const dup = await findDuplicate(email.userId, txn);
       if (dup) {

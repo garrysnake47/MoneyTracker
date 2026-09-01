@@ -1,6 +1,6 @@
 {
-  "name": "MoneyTracker",
-  "short_name": "MoneyTracker",
+  "name": "Spendwise",
+  "short_name": "Spendwise",
   "description": "Self-hosted personal expense tracker for Indian bank/UPI transactions",
   "start_url": "/",
   "scope": "/",

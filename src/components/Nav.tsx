@@ -39,7 +39,9 @@ export default function Nav() {
 
   async function logout() {
     await fetch('/api/logout', { method: 'POST' });
-    router.push('/login');
+    // Back to the landing page — signing out should feel like leaving the app,
+    // not like being bounced to a sign-in wall.
+    router.push('/');
     router.refresh();
   }
 
@@ -48,7 +50,7 @@ export default function Nav() {
       <div className="flex items-center gap-2.5 px-2 mb-7">
         <div className="grid h-9 w-9 place-items-center rounded-2xl bg-amber text-[rgb(var(--ink))] text-lg font-bold">₹</div>
         <div>
-          <div className="text-[15px] font-semibold leading-tight text-white">MoneyTracker</div>
+          <div className="text-[15px] font-semibold leading-tight text-white">Spendwise</div>
           <div className="text-xs text-[rgb(var(--sidebar-muted))]">Expense tracker</div>
         </div>
       </div>
@@ -85,7 +87,7 @@ export default function Nav() {
         </button>
         <div className="flex items-center gap-2">
           <div className="grid h-7 w-7 place-items-center rounded-xl bg-amber text-[rgb(var(--ink))] text-sm font-bold">₹</div>
-          <span className="font-semibold">MoneyTracker</span>
+          <span className="font-semibold">Spendwise</span>
         </div>
       </div>
 

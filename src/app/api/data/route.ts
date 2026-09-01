@@ -23,6 +23,9 @@ export async function DELETE(req: NextRequest) {
   await prisma.transaction.deleteMany({ where: { userId } });
   await prisma.subscription.deleteMany({ where: { userId } });
   await prisma.rawEmail.deleteMany({ where: { userId } });
+  // A full reset means a clean slate: keeping tombstones would permanently
+  // suppress those transactions from the re-sync that follows.
+  await prisma.deletedTransaction.deleteMany({ where: { userId } });
   await prisma.syncState.updateMany({ where: { userId }, data: { lastHistoryId: null, lastSyncAt: null, lastSyncStatus: null } });
   if (includeRules) await prisma.merchantRule.deleteMany({ where: { userId } });
   if (includeToken) await prisma.gmailToken.deleteMany({ where: { userId } });

@@ -88,13 +88,31 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   const txn = await prisma.transaction.findFirst({ where: { id: txnId, userId } });
   if (!txn) return NextResponse.json({ error: 'not found' }, { status: 404 });
 
-  // Re-parsing the source email would recreate the row, so mark it consumed.
-  if (txn.rawEmailId != null) {
-    await prisma.rawEmail.update({
-      where: { id: txn.rawEmailId },
-      data: { parseStatus: 'ignored', parseError: 'deleted by user' },
-    });
-  }
-  await prisma.transaction.delete({ where: { id: txn.id } });
+  await prisma.$transaction([
+    // Re-parsing the source email would recreate the row, so mark it consumed.
+    ...(txn.rawEmailId != null
+      ? [
+          prisma.rawEmail.update({
+            where: { id: txn.rawEmailId },
+            data: { parseStatus: 'ignored', parseError: 'deleted by user' },
+          }),
+        ]
+      : []),
+    // A tombstone as well: one purchase often arrives as several alerts, so
+    // ignoring just this email still leaves a sibling that would recreate the
+    // row on the next parse pass (see lib/parsePass.ts → wasDeleted).
+    prisma.deletedTransaction.create({
+      data: {
+        userId,
+        amount: txn.amount,
+        direction: txn.direction,
+        occurredAt: txn.occurredAt,
+        accountLast4: txn.accountLast4,
+        merchant: txn.merchant,
+        referenceId: txn.referenceId,
+      },
+    }),
+    prisma.transaction.delete({ where: { id: txn.id } }),
+  ]);
   return NextResponse.json({ ok: true });
 }

@@ -1,4 +1,4 @@
-// MoneyTracker data model — multi-user.
+// Spendwise data model — multi-user.
 // Each user owns their own emails, transactions, subscriptions, Gmail token and
 // sync/salary settings (scoped by user_id). The category taxonomy and the app's
 // Google/Anthropic credentials are global (shared). Postgres (Neon / Vercel).
@@ -91,6 +91,26 @@ model Transaction {
   @@index([userId, merchant])
   @@index([userId, categoryId])
   @@map("transactions")
+}
+
+/// Tombstone for a transaction the user deleted. Sync + parse re-run over the
+/// same mailbox constantly, and one purchase can arrive as several emails, so
+/// deleting a row is not enough — without this the next parse pass would
+/// recreate it from a sibling alert. Matched on the same fingerprint the
+/// deduper uses (amount + direction + ±3min + last4).
+model DeletedTransaction {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  amount       Decimal  @db.Decimal(12, 2)
+  direction    String
+  occurredAt   DateTime @map("occurred_at")
+  accountLast4 String?  @map("account_last4")
+  merchant     String
+  referenceId  String?  @map("reference_id")
+  deletedAt    DateTime @default(now()) @map("deleted_at")
+
+  @@index([userId, occurredAt, amount])
+  @@map("deleted_transactions")
 }
 
 /// Global category taxonomy (shared across users).

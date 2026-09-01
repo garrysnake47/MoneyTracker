@@ -44,6 +44,13 @@
   --sidebar-muted: 149 154 164;
 }
 
+html {
+  /* In-page nav (#features, #how, #faq) glides instead of jumping, and stops
+     clear of the sticky header rather than under it. */
+  scroll-behavior: smooth;
+  scroll-padding-top: 5.5rem;
+}
+
 html,
 body {
   background: rgb(var(--bg));
@@ -96,11 +103,13 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
 @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @keyframes growUp { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes growRight { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 
 .animate-float { animation: float 5s ease-in-out infinite; }
 .animate-float-slow { animation: floatSlow 7s ease-in-out infinite; }
 .animate-marquee { animation: marquee 26s linear infinite; }
 .animate-grow { transform-origin: bottom; animation: growUp 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.animate-grow-x { transform-origin: left; animation: growRight 0.9s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 /* Headline sheen that sweeps once on load. */
 .sheen {
@@ -128,7 +137,8 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up, .animate-fade-in, .animate-pop, .animate-slide-in,
-  .animate-float, .animate-float-slow, .animate-marquee, .animate-grow, .sheen { animation: none; }
+  .animate-float, .animate-float-slow, .animate-marquee, .animate-grow, .animate-grow-x, .sheen { animation: none; }
+  html { scroll-behavior: auto; }
   .sheen { color: rgb(var(--ink)); }
   .lift, .btn { transition: none; }
   .lift:hover { transform: none; }

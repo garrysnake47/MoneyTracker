@@ -1,4 +1,4 @@
-# MoneyTracker
+# Spendwise
 
 A self-hosted personal finance tracker for Indian bank/UPI transactions. It ingests
 transaction-alert emails from Gmail (read-only), parses them into structured

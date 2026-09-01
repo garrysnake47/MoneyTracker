@@ -8,10 +8,10 @@ const sans = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-sans', di
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
 
 export const metadata: Metadata = {
-  title: 'MoneyTracker',
+  title: 'Spendwise',
   description: 'Self-hosted personal expense tracker for Indian bank/UPI transactions',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'MoneyTracker' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Spendwise' },
   icons: {
     icon: '/icons/icon-192.png',
     apple: '/icons/apple-touch-icon.png',

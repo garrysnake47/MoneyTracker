@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import AuthShell from '@/components/AuthShell';
+import PasswordField from '@/components/PasswordField';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -34,30 +36,60 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <form onSubmit={submit} className="w-full max-w-sm space-y-4 card p-8 animate-fade-up">
-        <div className="flex items-center gap-2.5">
-          <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber text-[rgb(var(--ink))] text-xl font-bold">₹</div>
-          <div>
-            <div className="text-lg font-extrabold leading-tight tracking-tight">Create account</div>
-            <div className="text-sm text-muted">Your own private expense tracker</div>
-          </div>
-        </div>
+    <AuthShell
+      eyebrow="Free · self-hosted"
+      title="Create your account"
+      subtitle="Two fields now, then connect Gmail and your last three months land on their own."
+    >
+      <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-muted mb-1.5">Email</label>
-          <input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="input" />
+          <label className="mb-1.5 block text-xs font-semibold text-muted">Email</label>
+          <input
+            type="email"
+            autoFocus
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            className="input"
+          />
         </div>
-        <div>
-          <label className="block text-xs font-semibold text-muted mb-1.5">Password</label>
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="At least 6 characters" className="input" />
-        </div>
-        {error && <div className="text-xs text-debit">{error}</div>}
-        <button type="submit" disabled={busy} className="btn-primary w-full py-2.5">{busy ? 'Creating…' : 'Create account'}</button>
-        <div className="text-center text-sm text-muted">
+
+        <PasswordField
+          label="Password"
+          autoComplete="new-password"
+          value={password}
+          onChange={setPassword}
+          placeholder="At least 6 characters"
+          strength
+        />
+
+        {error && (
+          <div className="rounded-2xl bg-blush px-4 py-3 text-xs font-medium text-[rgb(var(--debit))]">{error}</div>
+        )}
+
+        <button type="submit" disabled={busy} className="btn-primary w-full py-3">
+          {busy ? 'Creating…' : 'Create account'}
+        </button>
+
+        <ul className="space-y-2 rounded-2xl bg-surface-2 px-4 py-3.5">
+          {[
+            'Read-only Gmail scope — mail is never modified',
+            'Your data stays in your own database',
+            'Export everything to CSV whenever you want',
+          ].map((t) => (
+            <li key={t} className="flex items-start gap-2.5 text-xs text-muted">
+              <span className="mt-px grid h-4 w-4 shrink-0 place-items-center rounded-full bg-credit text-[9px] text-white">✓</span>
+              {t}
+            </li>
+          ))}
+        </ul>
+
+        <p className="text-center text-sm text-muted">
           Already have an account?{' '}
-          <Link href="/login" className="text-accent font-medium hover:underline">Sign in</Link>
-        </div>
+          <Link href="/login" className="font-semibold text-text hover:underline">Sign in</Link>
+        </p>
       </form>
-    </div>
+    </AuthShell>
   );
 }

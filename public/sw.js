@@ -1,4 +1,4 @@
-/* MoneyTracker service worker — enables install + a basic app-shell cache.
+/* Spendwise service worker — enables install + a basic app-shell cache.
  * Network-first for navigations (so data stays fresh), cache fallback offline.
  * API responses are never cached (financial data must be live). */
 const CACHE = 'mt-shell-v1';
