@@ -73,6 +73,8 @@ export default function TransactionsPage() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [deleted, setDeleted] = useState<DeletedTxn[]>([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
+  // A failed delete/restore used to do nothing at all — always say why.
+  const [actionError, setActionError] = useState<string | null>(null);
 
   // Default to the current month (a new month starts fresh); "All time" clears it.
   const monthStart = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
@@ -112,30 +114,49 @@ export default function TransactionsPage() {
   }, [load]);
 
   useEffect(() => {
-    if (showDeleted) loadDeleted();
-  }, [showDeleted, loadDeleted]);
+    loadDeleted();
+  }, [loadDeleted]);
+
+  /** Read the server's error message; a 5xx returns HTML, so don't let JSON parsing throw. */
+  async function errorFrom(res: Response, fallback: string) {
+    const msg = await res
+      .json()
+      .then((d) => d.error as string | undefined)
+      .catch(() => null);
+    return msg || `${fallback} (${res.status})`;
+  }
 
   async function remove(t: Txn) {
-    if (!confirm(`Delete "${t.label}" (${inr(t.amount)})?\n\nIt won't come back on the next sync. You can restore it from "Deleted".`)) return;
+    if (!confirm(`Delete "${t.label}" (${inr(t.amount)})?\n\nIt won't come back on the next sync. You can restore it from "Deleted transactions".`)) return;
+    setActionError(null);
     const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
-    if (res.ok) {
-      if (editing === t.id) setEditing(null);
-      await load();
-      if (showDeleted) await loadDeleted();
+    if (!res.ok) {
+      setActionError(await errorFrom(res, 'Delete failed'));
+      return;
     }
+    if (editing === t.id) setEditing(null);
+    await Promise.all([load(), loadDeleted()]);
   }
 
   async function restore(d: DeletedTxn) {
+    setActionError(null);
     const res = await fetch(`/api/transactions/deleted/${d.id}`, { method: 'POST' });
-    if (res.ok) {
-      await Promise.all([load(), loadDeleted()]);
+    if (!res.ok) {
+      setActionError(await errorFrom(res, 'Restore failed'));
+      return;
     }
+    await Promise.all([load(), loadDeleted()]);
   }
 
   async function forget(d: DeletedTxn) {
     if (!confirm(`Forget "${d.label}" permanently?\n\nThe tombstone is removed, so a future sync may import it again.`)) return;
+    setActionError(null);
     const res = await fetch(`/api/transactions/deleted/${d.id}`, { method: 'DELETE' });
-    if (res.ok) await loadDeleted();
+    if (!res.ok) {
+      setActionError(await errorFrom(res, 'Could not forget'));
+      return;
+    }
+    await loadDeleted();
   }
 
   async function setCreditCard(t: Txn, isCreditCard: boolean) {
@@ -183,11 +204,31 @@ export default function TransactionsPage() {
             <button onClick={() => { setPage(1); setFrom(monthStart); setTo(''); }} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 sm:flex-none ${from === monthStart && !to ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>This month</button>
             <button onClick={() => { setPage(1); setFrom(''); setTo(''); }} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 sm:flex-none ${!from ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>All time</button>
           </div>
+          <button
+            onClick={() => {
+              setShowDeleted(true);
+              // Jump to the section rather than making them scroll the whole list.
+              requestAnimationFrame(() => document.getElementById('deleted')?.scrollIntoView({ block: 'start' }));
+            }}
+            className="btn-outline shrink-0 gap-1.5 whitespace-nowrap px-3 py-2"
+            title="Transactions you've deleted — restore them from here"
+          >
+            Deleted
+            {deleted.length > 0 && (
+              <span className="rounded-full bg-surface-2 px-1.5 text-xs font-bold text-muted">{deleted.length}</span>
+            )}
+          </button>
           <button onClick={() => setAdding(true)} className="btn-primary shrink-0 px-4 py-2">
             <span className="text-base leading-none">+</span> Add
           </button>
         </div>
       </header>
+
+      {actionError && (
+        <div className="rounded-2xl bg-blush px-4 py-3 text-sm font-medium text-[rgb(var(--debit))]">
+          {actionError}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="card p-3 sm:p-4 animate-fade-up" style={{ animationDelay: '60ms' }}>
@@ -262,7 +303,7 @@ export default function TransactionsPage() {
                           <button onClick={() => setEditing(editing === t.id ? null : t.id)} className="text-xs font-semibold text-accent">
                             {editing === t.id ? 'Close' : 'Edit'}
                           </button>
-                          <button onClick={() => remove(t)} className="text-xs font-semibold text-muted hover:text-debit">
+                          <button onClick={() => remove(t)} className="text-xs font-semibold text-debit hover:underline">
                             Delete
                           </button>
                         </div>
@@ -308,7 +349,7 @@ export default function TransactionsPage() {
       )}
 
       {/* ── Deleted ─────────────────────────────────────────────────────── */}
-      <section className="pt-2">
+      <section id="deleted" className="scroll-mt-20 pt-2">
         <button
           onClick={() => setShowDeleted((v) => !v)}
           className="flex w-full items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-surface-2"
