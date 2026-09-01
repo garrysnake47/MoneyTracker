@@ -59,7 +59,7 @@ function SettingsInner() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+      <h1 className="text-[28px] font-extrabold">Settings</h1>
 
       {gmailOk && <div className="rounded-lg border border-credit/40 bg-credit/5 p-3 text-sm text-credit">✓ Gmail connected.</div>}
       {gmailError && (
@@ -81,7 +81,7 @@ function SettingsInner() {
       <CategoryManager />
 
       {/* Gmail */}
-      <section className="rounded-xl border border-border bg-surface p-4 space-y-2">
+      <section className="rounded-2xl border border-border bg-surface p-4 space-y-2">
         <h2 className="text-sm font-semibold">Gmail (read-only)</h2>
         {status?.gmail.connected ? (
           <p className="text-sm text-credit">✓ Connected{status.gmail.email ? ` as ${status.gmail.email}` : ''}</p>
@@ -95,7 +95,7 @@ function SettingsInner() {
       </section>
 
       {/* Pipeline */}
-      <section className="rounded-xl border border-border bg-surface p-4 space-y-3">
+      <section className="rounded-2xl border border-border bg-surface p-4 space-y-3">
         <h2 className="text-sm font-semibold">Pipeline</h2>
         {status && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-sm">
@@ -119,7 +119,7 @@ function SettingsInner() {
       </section>
 
       {/* Data */}
-      <section className="rounded-xl border border-border bg-surface p-4 space-y-2">
+      <section className="rounded-2xl border border-border bg-surface p-4 space-y-2">
         <h2 className="text-sm font-semibold">Data export & delete</h2>
         <div className="flex flex-wrap gap-2">
           <a href="/api/export?format=json" className="rounded-lg border border-border px-3 py-1.5 text-sm">Export JSON</a>

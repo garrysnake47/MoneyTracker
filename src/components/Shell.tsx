@@ -16,7 +16,7 @@ export default function Shell({ children }: { children: React.ReactNode }) {
     <>
       <AutoSync />
       <Nav />
-      <main className="lg:pl-60 min-h-screen pt-14 lg:pt-0">
+      <main className="lg:pl-[264px] min-h-screen pt-14 lg:pt-0">
         <div className="mx-auto max-w-[1600px] px-4 sm:px-6 lg:px-8 py-5 pb-10">
           <GmailBanner />
           {children}

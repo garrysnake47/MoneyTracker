@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCategories } from '@/lib/useCategories';
+import { PALETTE } from '@/lib/palette';
 
 interface Rule {
   id: number;
@@ -16,7 +17,7 @@ interface Rule {
 }
 
 // Category accent colors (match the dashboard palette).
-const PALETTE = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1'];
+
 
 /**
  * Keyword rules: map a keyword to a category. Any transaction whose merchant
@@ -93,7 +94,7 @@ export default function KeywordsPage() {
   return (
     <div className="space-y-5">
       <header className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Keywords</h1>
+        <h1 className="text-[28px] font-extrabold tracking-tight">Keywords</h1>
         <p className="text-sm text-muted mt-1">
           Map keywords to categories. If a transaction’s merchant contains the keyword, it’s filed automatically —
           e.g. <span className="font-medium text-text">hotel, restaurant, bar</span> → Food.
@@ -129,7 +130,7 @@ export default function KeywordsPage() {
       {/* Existing rules grouped by category */}
       <div className="space-y-4">
         {byCategory.map(([cat, list], idx) => {
-          const color = colorByCat.get(cat) ?? '#6366f1';
+          const color = colorByCat.get(cat) ?? PALETTE[0];
           return (
             <section key={cat} className="card p-4 animate-fade-up" style={{ animationDelay: `${120 + idx * 50}ms` }}>
               <div className="flex items-center gap-2 mb-3">

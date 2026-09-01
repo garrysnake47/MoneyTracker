@@ -105,7 +105,7 @@ export default function TransactionsPage() {
     <div className="space-y-4">
       <header className="flex items-center justify-between gap-3 animate-fade-up">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Transactions</h1>
+          <h1 className="text-[28px] font-extrabold tracking-tight">Transactions</h1>
           <p className="text-sm text-muted">{total} shown · newest first</p>
         </div>
         <div className="flex items-center gap-2">

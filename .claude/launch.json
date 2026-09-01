@@ -1,12 +1,7 @@
 {
   "version": "0.0.1",
+  "autoPort": true,
   "configurations": [
-    {
-      "name": "moneytracker-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": 3000,
-      "autoPort": true
-    }
+    { "name": "moneytracker", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3000, "autoPort": true }
   ]
 }

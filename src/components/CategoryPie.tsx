@@ -2,6 +2,7 @@
 
 import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { inr } from '@/lib/format';
+import { PALETTE } from '@/lib/palette';
 
 export interface PieItem {
   categoryId: number | null;
@@ -9,12 +10,7 @@ export interface PieItem {
   amount: number;
 }
 
-// Accessible categorical palette (reads well in light & dark).
-const PALETTE = [
-  '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#a855f7',
-  '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6',
-  '#6366f1', '#eab308',
-];
+export { PALETTE };
 
 export function colorFor(index: number): string {
   return PALETTE[index % PALETTE.length];

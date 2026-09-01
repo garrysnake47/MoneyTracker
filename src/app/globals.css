@@ -2,23 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Light content theme — accessible slate + blue primary (no purple). */
+/* ───────────────────────────────────────────────────────────────────────────
+   Design tokens — "Budget planner / Finance App" language:
+   warm off-white canvas, white cards with generous radii and soft shadows,
+   charcoal "ink" hero surfaces, amber CTA accent, periwinkle secondary and
+   pastel category tints.
+   ─────────────────────────────────────────────────────────────────────────── */
 :root {
-  --bg: 248 250 252;        /* slate-50 */
+  --bg: 246 247 249;        /* warm off-white canvas */
   --surface: 255 255 255;   /* cards */
-  --surface-2: 241 245 249; /* slate-100 insets */
-  --border: 226 232 240;    /* slate-200 */
-  --text: 15 23 42;         /* slate-900 */
-  --muted: 71 85 105;       /* slate-600 — 7:1 on white (AA/AAA) */
-  --accent: 37 99 235;      /* blue-600 */
-  --accent-2: 29 78 216;    /* blue-700 */
-  --debit: 220 38 38;       /* red-600 */
-  --credit: 22 163 74;      /* green-600 */
+  --surface-2: 242 243 246; /* insets / tracks */
+  --border: 233 235 239;
+  --text: 26 28 31;         /* near-black ink */
+  --muted: 122 128 138;     /* 4.7:1 on white */
 
-  /* Dark sidebar surface */
-  --sidebar: 15 23 42;      /* slate-900 */
-  --sidebar-fg: 226 232 240;
-  --sidebar-muted: 148 163 184;
+  /* Primary = ink (used for solid buttons, active states, focus rings). */
+  --accent: 30 32 38;
+  --accent-2: 46 49 58;
+
+  /* Signature accents */
+  --amber: 245 184 65;      /* CTA circles, progress fills */
+  --amber-2: 232 166 38;
+  --peri: 128 149 242;      /* secondary highlight band */
+  --peri-2: 104 126 232;
+
+  /* Pastel category tints */
+  --tint-mint: 226 241 234;
+  --tint-lilac: 238 234 248;
+  --tint-sky: 232 239 250;
+  --tint-blush: 250 236 234;
+  --tint-sand: 251 243 226;
+
+  --debit: 214 88 78;       /* muted terracotta */
+  --credit: 42 138 105;     /* muted forest */
+
+  /* Ink surfaces (sidebar, hero cards) */
+  --ink: 30 32 38;
+  --ink-2: 46 49 58;
+  --sidebar: 30 32 38;
+  --sidebar-fg: 240 241 243;
+  --sidebar-muted: 149 154 164;
 }
 
 html,
@@ -33,25 +56,38 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.5;
-  letter-spacing: -0.006em;
+  letter-spacing: -0.01em;
   padding-bottom: env(safe-area-inset-bottom);
+  /* Soft warm wash behind the canvas, as in the reference frames. */
+  background-image:
+    radial-gradient(60rem 40rem at 100% -10%, rgb(var(--tint-sand) / 0.75), transparent 60%),
+    radial-gradient(50rem 34rem at -10% 0%, rgb(var(--tint-sky) / 0.7), transparent 60%);
+  background-attachment: fixed;
 }
 
-h1, h2, h3 { letter-spacing: -0.018em; }
+h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
 
 .font-mono { font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace; }
 .tabular { font-variant-numeric: tabular-nums; }
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-/* Reusable component classes (shadcn-style, no external deps). */
+/* Reusable component classes (no external deps). */
 @layer components {
-  .card { @apply rounded-2xl border border-border bg-surface shadow-card; }
-  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-lg text-sm font-medium transition-all disabled:opacity-60 disabled:pointer-events-none; }
-  .btn-primary { @apply btn bg-accent px-4 py-2 text-white hover:bg-[rgb(var(--accent-2))] active:scale-[0.98]; }
-  .btn-outline { @apply btn border border-border bg-surface px-4 py-2 text-text hover:bg-surface-2 active:scale-[0.98]; }
-  .btn-ghost { @apply btn px-3 py-1.5 text-muted hover:bg-surface-2 hover:text-text; }
-  .input { @apply w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted/70 outline-none transition-shadow focus:ring-2 focus:ring-accent/30 focus:border-accent; }
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium; }
+  .card { @apply rounded-3xl border border-border bg-surface shadow-card; }
+  .card-ink { @apply rounded-3xl bg-[rgb(var(--ink))] text-white shadow-ink; }
+
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-all disabled:opacity-60 disabled:pointer-events-none; }
+  .btn-primary { @apply btn bg-accent px-5 py-2.5 text-white hover:bg-[rgb(var(--accent-2))] active:scale-[0.97]; }
+  .btn-accent { @apply btn bg-amber px-5 py-2.5 text-[rgb(var(--ink))] hover:bg-[rgb(var(--amber-2))] active:scale-[0.97]; }
+  .btn-outline { @apply btn border border-border bg-surface px-5 py-2.5 text-text hover:bg-surface-2 active:scale-[0.97]; }
+  .btn-ghost { @apply btn px-3.5 py-2 text-muted hover:bg-surface-2 hover:text-text; }
+
+  /* Round amber "go" affordance from the reference. */
+  .fab-amber { @apply grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber text-[rgb(var(--ink))] transition-transform hover:scale-105 active:scale-95; }
+
+  .input { @apply w-full rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm text-text placeholder:text-muted/70 outline-none transition-shadow focus:ring-2 focus:ring-accent/15 focus:border-[rgb(var(--text))]/25; }
+  .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold; }
+  .tile { @apply grid place-items-center rounded-2xl; }
 }
 
 /* ── Motion ─────────────────────────────────────────────────────────────── */
@@ -66,7 +102,7 @@ h1, h2, h3 { letter-spacing: -0.018em; }
 .animate-slide-in { animation: slideInLeft 0.4s ease both; }
 
 .lift { transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.2s ease; }
-.lift:hover { transform: translateY(-3px); box-shadow: 0 16px 40px -18px rgb(15 23 42 / 0.25); }
+.lift:hover { transform: translateY(-3px); box-shadow: 0 20px 44px -22px rgb(26 28 31 / 0.28); }
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up, .animate-fade-in, .animate-pop, .animate-slide-in { animation: none; }

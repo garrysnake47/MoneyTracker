@@ -74,14 +74,14 @@ export default function OverviewPage() {
   const net = data ? data.totalMoneyIn - data.totalSpend : 0;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pt-1">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
+          <h1 className="text-[28px] font-extrabold tracking-tight">Overview</h1>
           <p className="text-sm text-muted">Spend excludes transfers, EMIs counted, card bills netted out.</p>
         </div>
         <div className="flex items-center gap-3">
-          <select value={month} onChange={(e) => setMonth(e.target.value)} className="input w-auto">
+          <select value={month} onChange={(e) => setMonth(e.target.value)} className="input w-auto rounded-full">
             {months.map((m) => (
               <option key={m} value={m}>{monthLabel(m)}</option>
             ))}
@@ -96,28 +96,28 @@ export default function OverviewPage() {
         <>
           {/* KPI tiles — each a distinct color */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <KpiCard label="Total spend" value={inr(data.totalSpend)} icon="wallet" tone="blue" delay={0}>
+            <KpiCard label="Total spend" value={inr(data.totalSpend)} icon="wallet" tone="ink" delay={0}>
               {data.deltaPct != null && (
                 <span>{data.deltaPct > 0 ? '▲' : '▼'} {Math.abs(data.deltaPct)}% vs last month</span>
               )}
             </KpiCard>
-            <KpiCard label="Money in" value={inr(data.totalMoneyIn)} icon="income" tone="emerald" delay={70} />
-            <KpiCard label="Net saved" value={inr(net)} icon="piggy" tone={net >= 0 ? 'amber' : 'rose'} delay={140}>
+            <KpiCard label="Money in" value={inr(data.totalMoneyIn)} icon="income" tone="mint" delay={70} />
+            <KpiCard label="Net saved" value={inr(net)} icon="piggy" tone={net >= 0 ? 'sand' : 'blush'} delay={140}>
               <span>{net >= 0 ? 'surplus' : 'deficit'}</span>
             </KpiCard>
-            <KpiCard label="Transactions" value={String(data.txnCount)} icon="receipt" tone="slate" delay={210}>
-              {data.uncategorizedCount > 0 && <a href="/review" className="underline decoration-white/40">{data.uncategorizedCount} to review →</a>}
+            <KpiCard label="Transactions" value={String(data.txnCount)} icon="receipt" tone="lilac" delay={210}>
+              {data.uncategorizedCount > 0 && <a href="/review" className="underline decoration-muted/50">{data.uncategorizedCount} to review →</a>}
             </KpiCard>
           </div>
 
           {/* Trend + health */}
           <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-4" delay={40}>
             <section className="card lift md:col-span-2 p-5">
-              <h2 className="text-sm font-semibold mb-3">Money in vs spend · {monthLabel(month)}</h2>
+              <h2 className="text-[15px] font-bold mb-3">Money in vs spend · {monthLabel(month)}</h2>
               <TrendChart data={data.trend} />
             </section>
             <section className="card lift p-5 flex flex-col">
-              <h2 className="text-sm font-semibold mb-3">Savings health</h2>
+              <h2 className="text-[15px] font-bold mb-3">Savings health</h2>
               <div className="flex-1 flex items-center justify-center">
                 <HealthGauge income={data.totalMoneyIn} spend={data.totalSpend} />
               </div>
@@ -128,10 +128,10 @@ export default function OverviewPage() {
           <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4" delay={40}>
             <section className="card lift p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold">{pieView === 'expense' ? 'Spend by category' : 'Income by source'}</h2>
-                <div className="inline-flex rounded-lg border border-border bg-surface-2 p-0.5 text-sm">
+                <h2 className="text-[15px] font-bold">{pieView === 'expense' ? 'Spend by category' : 'Income by source'}</h2>
+                <div className="inline-flex rounded-full border border-border bg-surface-2 p-0.5 text-sm">
                   {(['expense', 'income'] as const).map((v) => (
-                    <button key={v} onClick={() => setPieView(v)} className={`px-3 py-1 rounded-md capitalize transition-all ${pieView === v ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>{v}</button>
+                    <button key={v} onClick={() => setPieView(v)} className={`px-3.5 py-1 rounded-full capitalize transition-all ${pieView === v ? 'bg-[rgb(var(--ink))] text-white font-semibold' : 'text-muted'}`}>{v}</button>
                   ))}
                 </div>
               </div>
@@ -144,14 +144,14 @@ export default function OverviewPage() {
           <Reveal className="grid grid-cols-1 md:grid-cols-2 gap-4" delay={40}>
             <BudgetWidget month={month} />
             <section className="card lift p-5">
-              <h2 className="text-sm font-semibold mb-3">Top merchants</h2>
+              <h2 className="text-[15px] font-bold mb-3">Top merchants</h2>
               {data.topMerchants.length === 0 ? (
                 <p className="text-sm text-muted">Nothing yet.</p>
               ) : (
                 <ul className="divide-y divide-border">
                   {data.topMerchants.map((m, i) => (
                     <li key={m.merchant} className="flex items-center gap-3 py-2 text-sm">
-                      <span className="h-6 w-6 shrink-0 rounded-md bg-surface-2 grid place-items-center text-xs text-muted">{i + 1}</span>
+                      <span className="h-7 w-7 shrink-0 rounded-full bg-surface-2 grid place-items-center text-xs font-semibold text-muted">{i + 1}</span>
                       <span className="flex-1 truncate">{m.merchant}</span>
                       <span className="tabular font-medium">{inr(m.amount)}</span>
                     </li>
@@ -171,24 +171,34 @@ export default function OverviewPage() {
   );
 }
 
-const TONES: Record<string, string> = {
-  blue: 'from-blue-600 to-blue-800',
-  emerald: 'from-emerald-500 to-emerald-700',
-  amber: 'from-amber-500 to-orange-600',
-  rose: 'from-rose-500 to-red-600',
-  slate: 'from-slate-700 to-slate-900',
+/* Card looks from the reference: one ink "balance" hero, the rest white with
+   pastel icon tiles. */
+const TONES: Record<string, { card: string; tile: string; label: string; value: string; sub: string }> = {
+  ink: {
+    card: 'bg-[rgb(var(--ink))] text-white shadow-ink border border-transparent',
+    tile: 'bg-white/15 text-white',
+    label: 'text-white/70',
+    value: 'text-white',
+    sub: 'text-white/70',
+  },
+  mint: { card: 'bg-surface border border-border shadow-card', tile: 'bg-mint text-[rgb(var(--credit))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
+  sand: { card: 'bg-surface border border-border shadow-card', tile: 'bg-sand text-[rgb(var(--amber-2))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
+  blush: { card: 'bg-surface border border-border shadow-card', tile: 'bg-blush text-[rgb(var(--debit))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
+  lilac: { card: 'bg-surface border border-border shadow-card', tile: 'bg-lilac text-[rgb(var(--peri-2))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
+  sky: { card: 'bg-surface border border-border shadow-card', tile: 'bg-sky text-[rgb(var(--peri-2))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
 };
 
 function KpiCard({ label, value, children, tone, icon, delay = 0 }: { label: string; value: string; children?: React.ReactNode; tone: keyof typeof TONES | string; icon: string; delay?: number }) {
+  const t = TONES[tone] ?? TONES.sky;
   return (
-    <div className={`lift animate-pop relative overflow-hidden rounded-2xl p-4 text-white bg-gradient-to-br ${TONES[tone] ?? TONES.blue} shadow-lg`} style={{ animationDelay: `${delay}ms` }}>
-      <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/10" aria-hidden />
+    <div className={`lift animate-pop relative overflow-hidden rounded-3xl p-5 ${t.card}`} style={{ animationDelay: `${delay}ms` }}>
+      {tone === 'ink' && <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/[0.06]" aria-hidden />}
       <div className="relative flex items-center justify-between">
-        <div className="text-[11px] sm:text-xs font-medium text-white/85">{label}</div>
-        <span className="grid h-7 w-7 sm:h-8 sm:w-8 place-items-center rounded-lg bg-white/20 text-white"><Icon name={icon} size={16} /></span>
+        <div className={`text-[11px] sm:text-xs font-semibold uppercase tracking-wide ${t.label}`}>{label}</div>
+        <span className={`tile h-9 w-9 ${t.tile}`}><Icon name={icon} size={16} /></span>
       </div>
-      <div className="relative mt-1.5 text-xl sm:text-2xl lg:text-[26px] leading-tight font-bold tabular whitespace-nowrap">{value}</div>
-      <div className="relative mt-1 text-[11px] sm:text-xs text-white/90">{children}</div>
+      <div className={`relative mt-2 text-xl sm:text-2xl lg:text-[28px] leading-tight font-extrabold tabular whitespace-nowrap ${t.value}`}>{value}</div>
+      <div className={`relative mt-1 text-[11px] sm:text-xs font-medium ${t.sub}`}>{children}</div>
     </div>
   );
 }

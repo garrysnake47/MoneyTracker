@@ -14,7 +14,7 @@ interface B {
 
 function barColor(pct: number) {
   if (pct >= 100) return 'bg-debit';
-  if (pct >= 80) return 'bg-amber-500';
+  if (pct >= 80) return 'bg-amber';
   return 'bg-credit';
 }
 

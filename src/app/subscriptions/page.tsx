@@ -64,7 +64,7 @@ export default function SubscriptionsPage() {
     <div className="space-y-5">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold">Subscriptions</h1>
+          <h1 className="text-[28px] font-extrabold">Subscriptions</h1>
           <p className="text-sm text-muted">Recurring payments detected from your history.</p>
         </div>
         <button onClick={detect} disabled={detecting} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
@@ -95,7 +95,7 @@ export default function SubscriptionsPage() {
       ) : subs.length === 0 ? (
         <div className="text-muted">No subscriptions detected yet. Run “Re-detect” after syncing.</div>
       ) : (
-        <div className="scroll-x rounded-xl border border-border">
+        <div className="scroll-x rounded-2xl border border-border">
           <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-surface-2 text-muted text-xs">
               <tr>

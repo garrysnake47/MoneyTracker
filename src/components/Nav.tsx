@@ -45,7 +45,7 @@ export default function Nav() {
   const Content = (
     <div className="flex h-full flex-col px-3 py-5">
       <div className="flex items-center gap-2.5 px-2 mb-7">
-        <div className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-white text-lg font-bold">₹</div>
+        <div className="grid h-9 w-9 place-items-center rounded-2xl bg-amber text-[rgb(var(--ink))] text-lg font-bold">₹</div>
         <div>
           <div className="text-[15px] font-semibold leading-tight text-white">MoneyTracker</div>
           <div className="text-xs text-[rgb(var(--sidebar-muted))]">Expense tracker</div>
@@ -56,8 +56,8 @@ export default function Nav() {
           <Link
             key={l.href}
             href={l.href}
-            className={`group flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-              isActive(l.href) ? 'bg-accent text-white font-medium' : 'text-[rgb(var(--sidebar-muted))] hover:bg-white/[0.06] hover:text-white'
+            className={`group flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm transition-colors ${
+              isActive(l.href) ? 'bg-amber text-[rgb(var(--ink))] font-semibold' : 'text-[rgb(var(--sidebar-muted))] hover:bg-white/[0.07] hover:text-white'
             }`}
           >
             <Icon name={l.icon} size={18} className="shrink-0" />
@@ -66,7 +66,7 @@ export default function Nav() {
         ))}
       </nav>
       <div className="mt-auto space-y-2">
-        <button onClick={logout} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[rgb(var(--sidebar-muted))] transition-colors hover:bg-white/[0.06] hover:text-white">
+        <button onClick={logout} className="flex w-full items-center gap-3 rounded-full px-3.5 py-2.5 text-sm text-[rgb(var(--sidebar-muted))] transition-colors hover:bg-white/[0.06] hover:text-white">
           <Icon name="logout" size={18} className="shrink-0" />
           Sign out
         </button>
@@ -79,17 +79,17 @@ export default function Nav() {
     <>
       {/* Mobile / tablet top bar with hamburger (< lg) */}
       <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 flex items-center gap-3 px-4 border-b border-border bg-surface/95 backdrop-blur">
-        <button onClick={() => setOpen(true)} aria-label="Open menu" className="grid h-9 w-9 place-items-center rounded-lg hover:bg-surface-2 text-text">
+        <button onClick={() => setOpen(true)} aria-label="Open menu" className="grid h-9 w-9 place-items-center rounded-full hover:bg-surface-2 text-text">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
         </button>
         <div className="flex items-center gap-2">
-          <div className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-white text-sm font-bold">₹</div>
+          <div className="grid h-7 w-7 place-items-center rounded-xl bg-amber text-[rgb(var(--ink))] text-sm font-bold">₹</div>
           <span className="font-semibold">MoneyTracker</span>
         </div>
       </div>
 
       {/* Desktop sidebar (lg+) */}
-      <aside className="hidden lg:flex lg:w-60 lg:flex-col lg:fixed lg:inset-y-0 bg-[rgb(var(--sidebar))]">
+      <aside className="hidden lg:flex lg:w-60 lg:flex-col lg:fixed lg:inset-y-3 lg:left-3 lg:rounded-[28px] bg-[rgb(var(--sidebar))] shadow-ink">
         {Content}
       </aside>
 
@@ -97,7 +97,7 @@ export default function Nav() {
       {open && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setOpen(false)} />
-          <aside className="absolute left-0 inset-y-0 w-72 max-w-[82vw] bg-[rgb(var(--sidebar))] shadow-2xl animate-slide-in">
+          <aside className="absolute left-0 inset-y-0 w-72 max-w-[82vw] bg-[rgb(var(--sidebar))] shadow-2xl rounded-r-[28px] animate-slide-in">
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="absolute top-4 right-3 grid h-8 w-8 place-items-center rounded-lg text-[rgb(var(--sidebar-muted))] hover:bg-white/10 hover:text-white">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>

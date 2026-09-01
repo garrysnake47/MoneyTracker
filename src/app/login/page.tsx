@@ -31,20 +31,20 @@ function LoginForm() {
   }
 
   return (
-    <form onSubmit={submit} className="w-full max-w-sm space-y-4 card p-7 animate-fade-up">
+    <form onSubmit={submit} className="w-full max-w-sm space-y-4 card p-8 animate-fade-up">
       <div className="flex items-center gap-2.5">
-        <div className="grid h-10 w-10 place-items-center rounded-xl bg-accent text-white text-xl font-bold">₹</div>
+        <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber text-[rgb(var(--ink))] text-xl font-bold">₹</div>
         <div>
-          <div className="text-lg font-semibold leading-tight">MoneyTracker</div>
+          <div className="text-lg font-extrabold leading-tight tracking-tight">MoneyTracker</div>
           <div className="text-sm text-muted">Sign in to your account</div>
         </div>
       </div>
       <div>
-        <label className="block text-xs text-muted mb-1.5">Email</label>
+        <label className="block text-xs font-semibold text-muted mb-1.5">Email</label>
         <input type="email" autoFocus value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" className="input" />
       </div>
       <div>
-        <label className="block text-xs text-muted mb-1.5">Password</label>
+        <label className="block text-xs font-semibold text-muted mb-1.5">Password</label>
         <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className="input" />
       </div>
       {error && <div className="text-xs text-debit">{error}</div>}

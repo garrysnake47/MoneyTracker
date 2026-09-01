@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { inr, fmtDateTime } from '@/lib/format';
+import { PALETTE } from '@/lib/palette';
 import { useCategories } from '@/lib/useCategories';
 import CategoryEditor from '@/components/CategoryEditor';
 
@@ -17,7 +18,7 @@ interface Txn {
   llmConfidence: number | null;
 }
 
-const PALETTE = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#64748b'];
+
 
 export default function ReviewPage() {
   const categories = useCategories();
@@ -98,7 +99,7 @@ export default function ReviewPage() {
     <div className="space-y-4 max-w-3xl mx-auto">
       <header className="flex items-center justify-between animate-fade-up">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Review queue</h1>
+          <h1 className="text-[28px] font-extrabold tracking-tight">Review queue</h1>
           <p className="text-sm text-muted">{remaining} left · one keystroke per decision</p>
         </div>
         <button onClick={load} className="btn-outline px-3 py-1.5">Refresh</button>
@@ -165,7 +166,7 @@ export default function ReviewPage() {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                     {cat.subcategories.map((s) => (
-                      <button key={s.id} onClick={() => assign(cat.id, s.id)} className="rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-accent">
+                      <button key={s.id} onClick={() => assign(cat.id, s.id)} className="rounded-2xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-accent">
                         {s.name}
                       </button>
                     ))}
@@ -187,7 +188,7 @@ export default function ReviewPage() {
                     <button
                       key={c.id}
                       onClick={() => (hasSubs ? setPendingCat(c.id) : assign(c.id))}
-                      className="group flex items-center gap-2.5 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-transparent"
+                      className="group flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-3 py-2.5 text-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-transparent"
                       style={{ ['--c' as string]: color }}
                     >
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-semibold text-white" style={{ background: color }}>{i < 9 ? i + 1 : '·'}</span>

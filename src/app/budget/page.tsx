@@ -15,7 +15,7 @@ interface B {
 
 function barColor(pct: number) {
   if (pct >= 100) return 'bg-debit';
-  if (pct >= 80) return 'bg-amber-500';
+  if (pct >= 80) return 'bg-amber';
   return 'bg-credit';
 }
 
@@ -72,7 +72,7 @@ export default function BudgetPage() {
   return (
     <div className="space-y-5">
       <header className="animate-fade-up">
-        <h1 className="text-2xl font-semibold tracking-tight">Budgets</h1>
+        <h1 className="text-[28px] font-extrabold tracking-tight">Budgets</h1>
         <p className="text-sm text-muted mt-1">Set a monthly cap per category and track spending against it.</p>
       </header>
 
