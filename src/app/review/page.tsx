@@ -29,6 +29,9 @@ export default function ReviewPage() {
   const [editing, setEditing] = useState(false);
   const [pendingCat, setPendingCat] = useState<number | null>(null); // category id whose subs are being shown
   const [flash, setFlash] = useState<string | null>(null);
+  // Which side of the taxonomy the picker is showing. Follows the transaction's
+  // direction by default — a credit is almost always income.
+  const [side, setSide] = useState<'expense' | 'income'>('expense');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -45,6 +48,14 @@ export default function ReviewPage() {
   }, [load]);
 
   const current = queue[idx];
+
+  // Follow the current transaction's direction when it changes.
+  useEffect(() => {
+    if (current) setSide(current.direction === 'credit' ? 'income' : 'expense');
+  }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Income = the non-expense side of the taxonomy (Salary, Bonus, Extra, Transfers).
+  const visible = categories.filter((c) => (side === 'income' ? !c.isExpense : c.isExpense));
 
   const assign = useCallback(
     async (categoryId: number, subcategoryId?: number | null) => {
@@ -81,14 +92,16 @@ export default function ReviewPage() {
       }
       if (e.key >= '1' && e.key <= '9') {
         const n = Number(e.key) - 1;
-        const c = categories[n];
+        const c = visible[n];
         if (c) (c.subcategories.length > 0 ? setPendingCat(c.id) : assign(c.id));
       } else if (e.key.toLowerCase() === 'e') setEditing(true);
       else if (e.key.toLowerCase() === 's') skip();
+      else if (e.key.toLowerCase() === 'i') setSide('income');
+      else if (e.key.toLowerCase() === 'x') setSide('expense');
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [current, editing, pendingCat, categories, assign, skip]);
+  }, [current, editing, pendingCat, categories, visible, assign, skip]);
 
   if (loading) return <div className="text-muted py-16 text-center animate-fade-in">Loading…</div>;
 
@@ -96,7 +109,7 @@ export default function ReviewPage() {
   const donePct = total > 0 ? Math.round((idx / total) * 100) : 0;
 
   return (
-    <div className="space-y-4 max-w-3xl mx-auto">
+    <div className="space-y-4">
       <header className="flex items-center justify-between animate-fade-up">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Review queue</h1>
@@ -126,11 +139,11 @@ export default function ReviewPage() {
       ) : (
         <>
           {/* Transaction card */}
-          <div key={current.id} className="card p-5 animate-pop relative overflow-hidden">
+          <div key={current.id} className="card p-6 animate-pop relative overflow-hidden">
             <div className={`absolute left-0 inset-y-0 w-1 ${current.direction === 'debit' ? 'bg-debit' : 'bg-credit'}`} />
             <div className="flex items-start justify-between gap-3 pl-2">
               <div className="min-w-0">
-                <div className="text-xl font-semibold truncate">{current.label}</div>
+                <div className="text-2xl font-extrabold tracking-tight truncate">{current.label}</div>
                 <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-0.5 text-xs text-muted font-mono">
                   {current.rawMerchant}
                 </div>
@@ -139,7 +152,7 @@ export default function ReviewPage() {
                   {current.llmConfidence != null ? ` · AI ${Math.round(current.llmConfidence * 100)}%` : ''}
                 </div>
               </div>
-              <div className={`text-2xl font-bold tabular shrink-0 ${current.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
+              <div className={`text-[32px] font-extrabold tabular shrink-0 ${current.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
                 {current.direction === 'debit' ? '−' : '+'}{inr(current.amount)}
               </div>
             </div>
@@ -164,7 +177,7 @@ export default function ReviewPage() {
                   <div className="text-sm text-muted">
                     Pick a subcategory for <span className="font-medium text-text">{cat.name}</span>, or save without one:
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                     {cat.subcategories.map((s) => (
                       <button key={s.id} onClick={() => assign(cat.id, s.id)} className="rounded-2xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-accent">
                         {s.name}
@@ -180,15 +193,29 @@ export default function ReviewPage() {
             })()
           ) : (
             <>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                {categories.map((c, i) => {
+              {/* Expense / Income sides of the taxonomy */}
+              <div className="inline-flex rounded-full border border-border bg-surface-2 p-1 text-sm">
+                {(['expense', 'income'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => { setSide(v); setPendingCat(null); }}
+                    className={`px-5 py-1.5 rounded-full capitalize transition-all ${side === v ? 'bg-[rgb(var(--ink))] text-white font-semibold' : 'text-muted hover:text-text'}`}
+                  >
+                    {v}
+                    <kbd className="ml-1.5 text-[10px] opacity-60">{v === 'income' ? 'i' : 'x'}</kbd>
+                  </button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5">
+                {visible.map((c, i) => {
                   const color = PALETTE[i % PALETTE.length];
                   const hasSubs = c.subcategories.length > 0;
                   return (
                     <button
                       key={c.id}
                       onClick={() => (hasSubs ? setPendingCat(c.id) : assign(c.id))}
-                      className="group flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-3 py-2.5 text-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-transparent"
+                      className="group flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-3.5 py-3.5 text-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-transparent"
                       style={{ ['--c' as string]: color }}
                     >
                       <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-semibold text-white" style={{ background: color }}>{i < 9 ? i + 1 : '·'}</span>
@@ -198,6 +225,11 @@ export default function ReviewPage() {
                   );
                 })}
               </div>
+              {visible.length === 0 && (
+                <p className="text-sm text-muted">
+                  No {side} categories yet — add them under <a href="/settings" className="underline">Settings</a>.
+                </p>
+              )}
               <div className="flex gap-2 text-sm">
                 <button onClick={() => setEditing(true)} className="btn-outline px-3 py-1.5">
                   <kbd className="mr-1 rounded bg-surface-2 px-1 text-xs">e</kbd> One-off (this txn only)

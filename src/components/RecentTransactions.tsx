@@ -14,30 +14,41 @@ interface Txn {
   categoryName: string | null;
 }
 
-export default function RecentTransactions() {
+/** Last day of a YYYY-MM month, as YYYY-MM-DD. */
+function monthEnd(month: string): string {
+  const [y, mo] = month.split('-').map(Number);
+  return `${month}-${String(new Date(y, mo, 0).getDate()).padStart(2, '0')}`;
+}
+
+/**
+ * Recent activity for ONE month. Scoped to the dashboard's selected month so a
+ * new month starts empty instead of trailing the previous month's rows.
+ */
+export default function RecentTransactions({ month }: { month: string }) {
   const [items, setItems] = useState<Txn[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/transactions?pageSize=6')
+    setLoading(true);
+    fetch(`/api/transactions?pageSize=6&from=${month}-01&to=${monthEnd(month)}`)
       .then((r) => (r.ok ? r.json() : { items: [] }))
       .then((d) => setItems(d.items ?? []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
-  }, []);
+  }, [month]);
 
   return (
-    <section className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+    <section className="card lift p-5">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold">Recent activity</h2>
-        <Link href="/transactions" className="text-xs text-accent">
+        <h2 className="text-[15px] font-bold">Recent activity</h2>
+        <Link href="/transactions" className="text-xs font-semibold text-accent hover:underline">
           View all →
         </Link>
       </div>
       {loading ? (
         <div className="text-sm text-muted">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="text-sm text-muted">No transactions yet.</div>
+        <div className="text-sm text-muted">Nothing this month yet.</div>
       ) : (
         <ul className="divide-y divide-border">
           {items.map((t) => (

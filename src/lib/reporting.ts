@@ -151,41 +151,67 @@ export async function getTrend(userId: number, endMonth: string, months = 6): Pr
   return Array.from(buckets.values()).map((b) => ({ ...b, spend: Math.round(b.spend), income: Math.round(b.income) }));
 }
 
+export interface CategoryWeek {
+  label: string; // "1–7"
+  total: number;
+  /** amount per top-level category name — sparse, only what was spent */
+  [category: string]: string | number;
+}
+
+export interface WeeklyCategorySpend {
+  weeks: CategoryWeek[];
+  /** Category names present this month, largest total first — the stack order. */
+  categories: string[];
+}
+
 /**
- * Spend + income for the SELECTED month, split into calendar weeks
- * (1–7, 8–14, 15–21, 22–28, 29–end). A new month starts empty and fills up.
+ * Spend for the selected month split into calendar weeks and stacked by
+ * top-level category. Only is_expense debits count, so transfers and card-bill
+ * payments never show up as a band.
  */
-export async function getWeeklyTrend(userId: number, month: string): Promise<TrendPoint[]> {
+export async function getWeeklyCategorySpend(userId: number, month: string): Promise<WeeklyCategorySpend> {
   const flags = await expenseFlagMap();
   const { start, end } = monthBounds(month);
   const [ey, em] = month.split('-').map(Number);
   const daysInMonth = new Date(ey, em, 0).getDate();
 
-  // Week buckets by day-of-month range.
   const ranges: [number, number][] = [];
   for (let d = 1; d <= daysInMonth; d += 7) ranges.push([d, Math.min(d + 6, daysInMonth)]);
-  const buckets: TrendPoint[] = ranges.map(([a, b]) => ({ month: `${month}-${a}`, label: `${a}–${b}`, spend: 0, income: 0 }));
 
   const txns = await prisma.transaction.findMany({
-    where: { userId, occurredAt: { gte: start, lt: end } },
-    select: { amount: true, direction: true, occurredAt: true, categoryId: true, subcategoryId: true, isCreditCard: true },
+    where: { userId, direction: 'debit', occurredAt: { gte: start, lt: end } },
+    select: { amount: true, occurredAt: true, categoryId: true, subcategoryId: true, category: { select: { name: true } } },
   });
 
+  const buckets = ranges.map(([a, b]) => ({ label: `${a}\u2013${b}`, byCat: new Map<string, number>(), total: 0 }));
+  const totals = new Map<string, number>();
+
   for (const t of txns) {
-    const dayOfMonth = t.occurredAt.getDate();
-    const idx = Math.min(ranges.length - 1, Math.floor((dayOfMonth - 1) / 7));
-    const b = buckets[idx];
+    const effId = t.subcategoryId ?? t.categoryId;
+    const isExpense = effId == null ? true : flags.get(effId) ?? true;
+    if (!isExpense) continue;
+
+    const idx = Math.min(ranges.length - 1, Math.floor((t.occurredAt.getDate() - 1) / 7));
+    const name = t.category?.name ?? 'Uncategorized';
     const amt = Number(t.amount);
-    if (t.direction === 'credit') {
-      if (!t.isCreditCard) b.income += amt;
-    } else {
-      const effId = t.subcategoryId ?? t.categoryId;
-      const isExpense = effId == null ? true : flags.get(effId) ?? true;
-      if (isExpense) b.spend += amt;
-    }
+    const b = buckets[idx];
+    b.byCat.set(name, (b.byCat.get(name) ?? 0) + amt);
+    b.total += amt;
+    totals.set(name, (totals.get(name) ?? 0) + amt);
   }
 
-  return buckets.map((b) => ({ ...b, spend: Math.round(b.spend), income: Math.round(b.income) }));
+  // Biggest categories first so the stack reads consistently across weeks.
+  const categories = Array.from(totals.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([name]) => name);
+
+  const weeks = buckets.map((b) => {
+    const row: CategoryWeek = { label: b.label, total: Math.round(b.total * 100) / 100 };
+    for (const name of categories) row[name] = Math.round((b.byCat.get(name) ?? 0) * 100) / 100;
+    return row;
+  });
+
+  return { weeks, categories };
 }
 
 export async function getMonthlyOverview(userId: number, month: string): Promise<MonthlyOverview> {

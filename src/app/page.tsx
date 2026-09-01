@@ -6,7 +6,7 @@ import SyncButton from '@/components/SyncButton';
 import Icon from '@/components/Icon';
 import Reveal from '@/components/Reveal';
 import CategoryPie from '@/components/CategoryPie';
-import TrendChart, { type TrendPoint } from '@/components/TrendChart';
+import CategoryWeekChart, { type WeeklyCategorySpend } from '@/components/CategoryWeekChart';
 import HealthGauge from '@/components/HealthGauge';
 import RecentTransactions from '@/components/RecentTransactions';
 import SubsWidget from '@/components/SubsWidget';
@@ -26,7 +26,7 @@ interface Overview {
   topMerchants: { merchant: string; amount: number }[];
   txnCount: number;
   uncategorizedCount: number;
-  trend: TrendPoint[];
+  weekly: WeeklyCategorySpend;
 }
 
 function monthOptions(): string[] {
@@ -99,7 +99,7 @@ export default function OverviewPage() {
       ) : (
         <>
           {/* KPI tiles — each a distinct color */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <KpiCard label="Total spend" value={inr(data.totalSpend)} icon="wallet" tone="ink" delay={0}>
               {data.deltaPct != null && (
                 <span>{data.deltaPct > 0 ? '▲' : '▼'} {Math.abs(data.deltaPct)}% vs last month</span>
@@ -112,18 +112,26 @@ export default function OverviewPage() {
               <span>{net >= 0 ? 'surplus' : 'deficit'} · in − out of account</span>
             </KpiCard>
             <KpiCard label="Credit card" value={inr(data.creditCardSpend)} icon="creditcard" tone="sky" delay={210}>
-              <a href="/credit-card" className="underline decoration-muted/50">not deducted from balance →</a>
-            </KpiCard>
-            <KpiCard label="Transactions" value={String(data.txnCount)} icon="receipt" tone="lilac" delay={280}>
-              {data.uncategorizedCount > 0 && <a href="/review" className="underline decoration-muted/50">{data.uncategorizedCount} to review →</a>}
+              <a href="/credit-card" className="underline decoration-current/40">not deducted from balance →</a>
             </KpiCard>
           </div>
 
-          {/* Trend + health */}
+          {data.uncategorizedCount > 0 && (
+            <a
+              href="/review"
+              className="flex items-center gap-2.5 rounded-2xl bg-sand px-4 py-3 text-sm font-semibold text-[rgb(var(--ink))] transition-colors hover:bg-[rgb(var(--amber))]/40 animate-fade-in"
+            >
+              <span className="tile h-7 w-7 bg-[rgb(var(--amber))] text-[rgb(var(--ink))]"><Icon name="review" size={14} /></span>
+              {data.uncategorizedCount} transaction{data.uncategorizedCount === 1 ? '' : 's'} need a category
+              <span className="ml-auto">→</span>
+            </a>
+          )}
+
+          {/* Week-wise category spend + health */}
           <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-4" delay={40}>
             <section className="card lift md:col-span-2 p-5">
-              <h2 className="text-[15px] font-bold mb-3">Money in vs spend · {monthLabel(month)}</h2>
-              <TrendChart data={data.trend} />
+              <h2 className="text-[15px] font-bold mb-3">Week-wise category spend · {monthLabel(month)}</h2>
+              <CategoryWeekChart data={data.weekly} />
             </section>
             <section className="card lift p-5 flex flex-col">
               <h2 className="text-[15px] font-bold mb-3">Savings health</h2>
@@ -146,7 +154,7 @@ export default function OverviewPage() {
               </div>
               <CategoryPie items={pieView === 'expense' ? data.categoryBreakdown : data.incomeBreakdown} />
             </section>
-            <RecentTransactions />
+            <RecentTransactions month={month} />
           </Reveal>
 
           {/* Budget (50%) + Top merchants (50%) */}
@@ -190,11 +198,41 @@ const TONES: Record<string, { card: string; tile: string; label: string; value: 
     value: 'text-white',
     sub: 'text-white/70',
   },
-  mint: { card: 'bg-surface border border-border shadow-card', tile: 'bg-mint text-[rgb(var(--credit))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
-  sand: { card: 'bg-surface border border-border shadow-card', tile: 'bg-sand text-[rgb(var(--amber-2))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
-  blush: { card: 'bg-surface border border-border shadow-card', tile: 'bg-blush text-[rgb(var(--debit))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
-  lilac: { card: 'bg-surface border border-border shadow-card', tile: 'bg-lilac text-[rgb(var(--peri-2))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
-  sky: { card: 'bg-surface border border-border shadow-card', tile: 'bg-sky text-[rgb(var(--peri-2))]', label: 'text-muted', value: 'text-text', sub: 'text-muted' },
+  mint: {
+    card: 'bg-mint border border-[rgb(var(--credit))]/15 shadow-card',
+    tile: 'bg-[rgb(var(--credit))] text-white',
+    label: 'text-[rgb(var(--credit))]',
+    value: 'text-[rgb(var(--ink))]',
+    sub: 'text-[rgb(var(--credit))]',
+  },
+  sand: {
+    card: 'bg-sand border border-[rgb(var(--amber-2))]/20 shadow-card',
+    tile: 'bg-[rgb(var(--amber))] text-[rgb(var(--ink))]',
+    label: 'text-[rgb(var(--amber-2))]',
+    value: 'text-[rgb(var(--ink))]',
+    sub: 'text-[rgb(var(--amber-2))]',
+  },
+  blush: {
+    card: 'bg-blush border border-[rgb(var(--debit))]/15 shadow-card',
+    tile: 'bg-[rgb(var(--debit))] text-white',
+    label: 'text-[rgb(var(--debit))]',
+    value: 'text-[rgb(var(--ink))]',
+    sub: 'text-[rgb(var(--debit))]',
+  },
+  sky: {
+    card: 'bg-sky border border-[rgb(var(--peri-2))]/15 shadow-card',
+    tile: 'bg-[rgb(var(--peri-2))] text-white',
+    label: 'text-[rgb(var(--peri-2))]',
+    value: 'text-[rgb(var(--ink))]',
+    sub: 'text-[rgb(var(--peri-2))]',
+  },
+  lilac: {
+    card: 'bg-lilac border border-[rgb(var(--peri-2))]/15 shadow-card',
+    tile: 'bg-[rgb(var(--peri))] text-white',
+    label: 'text-[rgb(var(--peri-2))]',
+    value: 'text-[rgb(var(--ink))]',
+    sub: 'text-[rgb(var(--peri-2))]',
+  },
 };
 
 function KpiCard({ label, value, children, tone, icon, delay = 0 }: { label: string; value: string; children?: React.ReactNode; tone: keyof typeof TONES | string; icon: string; delay?: number }) {

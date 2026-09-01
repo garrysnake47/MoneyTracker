@@ -23,6 +23,10 @@ const TAXONOMY: Cat[] = [
   { name: 'Shopping', isExpense: true, subs: [{ name: 'Online' }, { name: 'Clothing' }, { name: 'Electronics' }, { name: 'Personal care' }] },
   { name: 'House', isExpense: true, subs: [{ name: 'Rent' }, { name: 'Maintenance' }, { name: 'Repairs' }] },
   { name: 'Bills', isExpense: true, subs: [{ name: 'Mobile' }, { name: 'Broadband' }, { name: 'Electricity' }, { name: 'Subscriptions' }, { name: 'DTH' }] },
+  // ── Income (is_expense = false) — one tap each in the review queue. ──────
+  { name: 'Salary', isExpense: false, subs: [] },
+  { name: 'Bonus', isExpense: false, subs: [] },
+  { name: 'Extra', isExpense: false, subs: [] },
   { name: 'Transfers', isExpense: false, subs: [{ name: 'To people' }, { name: 'To self' }, { name: 'Cash withdrawal' }] },
   { name: 'Other', isExpense: true, subs: [{ name: 'Uncategorized' }, { name: 'Health' }, { name: 'Misc' }] },
 ];
