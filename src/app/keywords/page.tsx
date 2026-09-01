@@ -110,14 +110,14 @@ export default function KeywordsPage() {
           </div>
           <div>
             <label className="block text-xs text-muted mb-1.5">Category</label>
-            <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(''); }} className="input">
+            <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(''); }} className="select">
               <option value="">— Category —</option>
               {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
             </select>
           </div>
           <div>
             <label className="block text-xs text-muted mb-1.5">Subcategory (optional)</label>
-            <select value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} disabled={subs.length === 0} className="input disabled:opacity-50">
+            <select value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} disabled={subs.length === 0} className="select disabled:opacity-50">
               <option value="">— none —</option>
               {subs.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
             </select>

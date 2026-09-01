@@ -137,7 +137,7 @@ export default function CreditCardPage() {
           <h1 className="text-[28px] font-extrabold tracking-tight">Credit card</h1>
           <p className="text-sm text-muted">Card charges count as spend but don’t leave your account until you pay the bill.</p>
         </div>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className="input w-auto rounded-full">
+        <select value={month} onChange={(e) => setMonth(e.target.value)} className="select w-auto rounded-full">
           {months.map((m) => (
             <option key={m} value={m}>{monthLabel(m)}</option>
           ))}

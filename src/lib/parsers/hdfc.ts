@@ -46,8 +46,11 @@ export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
   }
 
   // ── InstaAlerts UPI credit ───────────────────────────────────────────────
+  // HDFC masks the account three different ways across template vintages
+  // ("ending 5427", "ending in 5427", "**1234", "XX1234") and introduces the
+  // payer with either "from VPA" or "towards VPA" — accept all of them.
   m = body.match(
-    /Rs\.?\s*([\d,]+\.?\d*)\s+is credited to your account ending\s*(\d{3,4})\s+(?:.*?)VPA\s+(\S+?)\s*(?:\(([^)]+)\))?\s+on\b/i,
+    /Rs\.?\s*([\d,]+\.?\d*)\s+(?:has been |is )?credited to your account\s*(?:ending(?: in)?\s*|\**|XX)(\d{3,4})\s+(?:.*?)VPA\s+(\S+?)\s*(?:\(([^)]+)\))?\s+on\b/i,
   );
   if (m) {
     const amount = parseAmount(m[1]);
@@ -73,7 +76,7 @@ export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
   }
 
   // ── Plain credit into own account (salary / NEFT / IMPS in) ──────────────
-  m = body.match(/(?:Rs\.?\s*)?(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+(?:has been )?(?:successfully )?credited to your (?:HDFC Bank )?account ending(?: in)?\s*(\d{3,4})/i);
+  m = body.match(/(?:Rs\.?\s*)?(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+(?:has been |is )?(?:successfully )?credited to your (?:HDFC Bank )?account\s*(?:ending(?: in)?\s*|\**|XX)(\d{3,4})/i);
   if (!m) m = body.match(/(?:Amount received:|received a credit).*?(?:Rs|INR)\.?\s*([\d,]+\.?\d*).*?(?:XX|ending(?: in)?\s*)(\d{3,4})/i);
   if (m) {
     const amount = parseAmount(m[1]);

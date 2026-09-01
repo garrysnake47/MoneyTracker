@@ -107,6 +107,8 @@ model DeletedTransaction {
   accountLast4 String?  @map("account_last4")
   merchant     String
   referenceId  String?  @map("reference_id")
+  /// Full row as it was, so "restore" puts back exactly what was removed.
+  snapshot     Json
   deletedAt    DateTime @default(now()) @map("deleted_at")
 
   @@index([userId, occurredAt, amount])

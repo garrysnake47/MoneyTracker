@@ -47,6 +47,28 @@ export const hdfcFixtures: Fixture[] = [
     expect: { status: 'parsed', amount: 2000, direction: 'credit', rawMerchantIncludes: 'ramesh', instrument: 'upi', last4: '1234' },
   },
   {
+    // Current InstaAlerts wording, with the payer's name in parentheses.
+    name: 'UPI credit — InstaAlerts wording',
+    email: {
+      ...base,
+      subject: 'You have received money',
+      bodyText:
+        'Rs.1,250.00 is credited to your account ending 5427 from VPA priya@okhdfcbank (PRIYA SHARMA) on 28-08-26. UPI transaction reference no.: 156522854299.',
+    },
+    expect: { status: 'parsed', amount: 1250, direction: 'credit', rawMerchantIncludes: 'PRIYA', instrument: 'upi', last4: '5427' },
+  },
+  {
+    // Salary / NEFT landing in the account — no VPA, payer from the narration.
+    name: 'NEFT credit into account',
+    email: {
+      ...base,
+      subject: 'Amount credited to your account',
+      bodyText:
+        'Dear Customer, INR 75,417.00 has been credited to your HDFC Bank account ending 5427 on 28-08-26. Reference Details: NEFT-ACME TECHNOLOGIES PVT LTD.',
+    },
+    expect: { status: 'parsed', amount: 75417, direction: 'credit', rawMerchantIncludes: 'ACME', instrument: 'netbanking', last4: '5427' },
+  },
+  {
     name: 'OTP is ignored',
     email: {
       ...base,

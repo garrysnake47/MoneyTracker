@@ -93,6 +93,17 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
   .fab-amber { @apply grid h-9 w-9 shrink-0 place-items-center rounded-full bg-amber text-[rgb(var(--ink))] transition-transform hover:scale-105 active:scale-95; }
 
   .input { @apply w-full rounded-2xl border border-border bg-surface px-4 py-2.5 text-sm text-text placeholder:text-muted/70 outline-none transition-shadow focus:ring-2 focus:ring-accent/15 focus:border-[rgb(var(--text))]/25; }
+
+  /* Native selects paint their arrow inside the box's own padding, so on narrow
+     widths the label runs straight into it. Draw our own chevron and reserve
+     room for it instead. */
+  .select {
+    @apply input appearance-none bg-no-repeat pr-10;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%237A808A' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 6.5 8 10.5 12 6.5'/%3E%3C/svg%3E");
+    background-position: right 0.85rem center;
+    background-size: 1rem 1rem;
+  }
+  .select::-ms-expand { display: none; }
   .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold; }
   .tile { @apply grid place-items-center rounded-2xl; }
 }

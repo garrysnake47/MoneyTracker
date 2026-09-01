@@ -27,8 +27,11 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
-      <body>
+    // Browser extensions (password managers, screen recorders, etc.) inject
+    // attributes onto <html>/<body> before React hydrates, which otherwise
+    // trips a hydration mismatch the app can do nothing about.
+    <html lang="en" className={`${sans.variable} ${mono.variable}`} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <ServiceWorkerRegister />
         <Shell>{children}</Shell>
       </body>

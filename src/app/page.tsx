@@ -98,31 +98,31 @@ export default function LandingPage() {
       </header>
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <section className="relative mx-auto max-w-6xl px-5 pt-14 pb-8 sm:pt-20">
-        <div className="grid lg:grid-cols-[1.05fr_1fr] gap-12 items-center">
-          <div>
+      <section className="relative mx-auto max-w-6xl px-5 pt-10 pb-8 sm:pt-20">
+        <div className="grid gap-12 lg:grid-cols-[1.05fr_1fr] lg:items-center">
+          <div className="min-w-0">
             <div className="animate-fade-up inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3.5 py-1.5 text-xs font-semibold text-muted shadow-card">
               <span className="h-1.5 w-1.5 rounded-full bg-credit" />
               Built for Indian bank &amp; UPI alerts
             </div>
 
-            <h1 className="animate-fade-up mt-5 text-[clamp(2.4rem,6vw,4rem)] font-extrabold leading-[1.05] tracking-tight" style={{ animationDelay: '60ms' }}>
+            <h1 className="animate-fade-up mt-5 text-[clamp(2.05rem,7vw,4rem)] font-extrabold leading-[1.05] tracking-tight" style={{ animationDelay: '60ms' }}>
               <span className="sheen">Every rupee</span>,
               <br />
               accounted for.
             </h1>
 
-            <p className="animate-fade-up mt-5 text-[17px] leading-relaxed text-muted max-w-lg" style={{ animationDelay: '120ms' }}>
+            <p className="animate-fade-up mt-5 max-w-lg text-[15px] leading-relaxed text-muted sm:text-[17px]" style={{ animationDelay: '120ms' }}>
               Your bank already emails you every transaction. Spendwise reads those alerts, sorts them into categories,
               and turns a year of noise into a monthly picture you can actually act on.
             </p>
 
-            <div className="animate-fade-up mt-8 flex flex-wrap items-center gap-3" style={{ animationDelay: '180ms' }}>
-              <Link href="/signup" className="btn-primary px-6 py-3 text-[15px]">
+            <div className="animate-fade-up mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center" style={{ animationDelay: '180ms' }}>
+              <Link href="/signup" className="btn-primary w-full px-6 py-3 text-[15px] sm:w-auto">
                 Start tracking — free
                 <span aria-hidden>→</span>
               </Link>
-              <Link href="/login" className="btn-outline px-6 py-3 text-[15px]">I have an account</Link>
+              <Link href="/login" className="btn-outline w-full px-6 py-3 text-[15px] sm:w-auto">I have an account</Link>
             </div>
 
             <p className="animate-fade-up mt-4 text-xs text-muted" style={{ animationDelay: '220ms' }}>
@@ -131,8 +131,8 @@ export default function LandingPage() {
           </div>
 
           {/* Dashboard preview */}
-          <Reveal delay={80}>
-            <div className="relative">
+          <Reveal delay={80} className="min-w-0">
+            <div className="relative min-w-0">
               <HeroPreview />
             </div>
           </Reveal>
@@ -140,14 +140,14 @@ export default function LandingPage() {
       </section>
 
       {/* ── Bank marquee ─────────────────────────────────────────────────── */}
-      <section className="py-10 border-y border-border/60 bg-surface/50">
+      <section className="border-y border-border/60 bg-surface/50 py-8 sm:py-10">
         <p className="text-center text-xs font-semibold uppercase tracking-[0.14em] text-muted mb-5">Reads alerts from</p>
         <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)]">
           <div className="flex w-max animate-marquee gap-3">
             {[...BANKS, ...BANKS, ...BANKS, ...BANKS].map((b, i) => (
               <span
                 key={i}
-                className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-semibold whitespace-nowrap shadow-card"
+                className="inline-flex items-center gap-2 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold shadow-card sm:px-5 sm:py-2 sm:text-sm"
                 style={{ background: b.bg, color: b.fg }}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-current opacity-70" aria-hidden />
@@ -159,14 +159,14 @@ export default function LandingPage() {
       </section>
 
       {/* ── Automatic email capture ──────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
-        <div className="grid lg:grid-cols-[1fr_1.05fr] gap-12 items-center">
+      <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1.05fr] lg:items-center lg:gap-12">
           <Reveal>
             <span className="chip bg-sky text-[rgb(var(--peri-2))]">Fully automatic</span>
-            <h2 className="mt-4 text-[clamp(1.9rem,4vw,2.6rem)] font-extrabold tracking-tight">
+            <h2 className="mt-4 text-[clamp(1.6rem,5vw,2.6rem)] font-extrabold tracking-tight">
               It reads your email, so you never log an expense again.
             </h2>
-            <p className="mt-4 text-[17px] leading-relaxed text-muted">
+            <p className="mt-4 text-[15px] leading-relaxed text-muted sm:text-[17px]">
               Every time you pay, your bank sends an alert to your inbox. Spendwise checks Gmail on a schedule,
               finds those alerts, pulls out the amount, merchant, date, card and account — and saves them as
               transactions on their own. No screenshots, no CSV uploads, no typing.
@@ -197,9 +197,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── Features ─────────────────────────────────────────────────────── */}
-      <section id="features" className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
+      <section id="features" className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
         <Reveal>
-          <h2 className="text-[clamp(1.9rem,4vw,2.6rem)] font-extrabold tracking-tight max-w-2xl">
+          <h2 className="text-[clamp(1.6rem,5vw,2.6rem)] font-extrabold tracking-tight max-w-2xl">
             The boring part is the whole point.
           </h2>
           <p className="mt-3 text-muted max-w-xl">
@@ -233,13 +233,13 @@ export default function LandingPage() {
 
       {/* ── How it works ─────────────────────────────────────────────────── */}
       <section id="how" className="bg-[rgb(var(--ink))] text-white">
-        <div className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
+        <div className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
           <Reveal>
-            <h2 className="text-[clamp(1.9rem,4vw,2.6rem)] font-extrabold tracking-tight">Set up in three steps.</h2>
+            <h2 className="text-[clamp(1.6rem,5vw,2.6rem)] font-extrabold tracking-tight">Set up in three steps.</h2>
             <p className="mt-3 text-white/60 max-w-xl">Roughly five minutes, then it runs itself on a daily schedule.</p>
           </Reveal>
 
-          <div className="mt-12 grid md:grid-cols-3 gap-8">
+          <div className="mt-10 grid gap-8 sm:mt-12 md:grid-cols-3">
             {STEPS.map((s, i) => (
               <Reveal key={s.n} delay={i * 90}>
                 <div className="relative">
@@ -255,12 +255,12 @@ export default function LandingPage() {
       </section>
 
       {/* ── Privacy ──────────────────────────────────────────────────────── */}
-      <section className="mx-auto max-w-6xl px-5 py-20 sm:py-24">
+      <section className="mx-auto max-w-6xl px-5 py-14 sm:py-20 lg:py-24">
         <Reveal>
-          <div className="card p-8 sm:p-12 grid lg:grid-cols-2 gap-10 items-center">
+          <div className="card grid items-center gap-8 p-6 sm:p-10 lg:grid-cols-2 lg:gap-10 lg:p-12">
             <div>
               <span className="chip bg-mint text-[rgb(var(--credit))]">Private by construction</span>
-              <h2 className="mt-4 text-[clamp(1.7rem,3.5vw,2.3rem)] font-extrabold tracking-tight">
+              <h2 className="mt-4 text-[clamp(1.5rem,4.5vw,2.3rem)] font-extrabold tracking-tight">
                 Nobody else holds your statements.
               </h2>
               <p className="mt-4 text-muted leading-relaxed">
@@ -290,9 +290,9 @@ export default function LandingPage() {
       </section>
 
       {/* ── FAQ ──────────────────────────────────────────────────────────── */}
-      <section id="faq" className="mx-auto max-w-3xl px-5 pb-20 sm:pb-24">
+      <section id="faq" className="mx-auto max-w-3xl px-5 pb-14 sm:pb-20 lg:pb-24">
         <Reveal>
-          <h2 className="text-[clamp(1.9rem,4vw,2.6rem)] font-extrabold tracking-tight text-center">Questions, answered.</h2>
+          <h2 className="text-[clamp(1.6rem,5vw,2.6rem)] font-extrabold tracking-tight text-center">Questions, answered.</h2>
         </Reveal>
         <div className="mt-10 space-y-3">
           {FAQ.map((f, i) => (
@@ -312,18 +312,18 @@ export default function LandingPage() {
       {/* ── Closing CTA ──────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-5 pb-20">
         <Reveal>
-          <div className="card-ink relative overflow-hidden p-10 sm:p-16 text-center">
+          <div className="card-ink relative overflow-hidden p-8 text-center sm:p-12 lg:p-16">
             <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[rgb(var(--amber))]/12 animate-float-slow" aria-hidden />
             <div className="absolute -left-20 -bottom-24 h-72 w-72 rounded-full bg-white/[0.04]" aria-hidden />
-            <h2 className="relative text-[clamp(1.9rem,4.5vw,3rem)] font-extrabold tracking-tight">
+            <h2 className="relative text-[clamp(1.6rem,5.5vw,3rem)] font-extrabold tracking-tight">
               Find out where it actually went.
             </h2>
             <p className="relative mx-auto mt-4 max-w-md text-white/60">
               Connect Gmail and your last three months are categorised before you finish your coffee.
             </p>
-            <div className="relative mt-8 flex flex-wrap items-center justify-center gap-3">
-              <Link href="/signup" className="btn-accent px-7 py-3 text-[15px]">Create your account</Link>
-              <Link href="/login" className="btn px-7 py-3 text-[15px] border border-white/20 text-white hover:bg-white/10">Sign in</Link>
+            <div className="relative mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-center">
+              <Link href="/signup" className="btn-accent w-full px-7 py-3 text-[15px] sm:w-auto">Create your account</Link>
+              <Link href="/login" className="btn w-full border border-white/20 px-7 py-3 text-[15px] text-white hover:bg-white/10 sm:w-auto">Sign in</Link>
             </div>
           </div>
         </Reveal>
@@ -368,31 +368,31 @@ function HeroPreview() {
   }, '');
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
+    <div className="min-w-0 overflow-hidden rounded-[28px] border border-border bg-surface shadow-card">
       {/* Window chrome — reads as the real app, not a chart widget. */}
-      <div className="flex items-center gap-2 border-b border-border px-5 py-3">
+      <div className="flex items-center gap-2 border-b border-border px-4 py-3 sm:px-5">
         <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--debit))]/70" />
         <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--amber))]" />
         <span className="h-2.5 w-2.5 rounded-full bg-[rgb(var(--credit))]/70" />
-        <span className="ml-2 text-[11px] font-semibold">August 2025</span>
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full bg-mint px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--credit))]">
+        <span className="ml-2 truncate text-[11px] font-semibold">August 2025</span>
+        <span className="ml-auto inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mint px-2.5 py-1 text-[10px] font-semibold text-[rgb(var(--credit))]">
           <span className="h-1.5 w-1.5 rounded-full bg-credit" />
           Synced 2m ago
         </span>
       </div>
 
-      <div className="p-5">
+      <div className="p-4 sm:p-5">
         {/* Headline number + trend */}
-        <div className="rounded-2xl bg-[rgb(var(--ink))] p-5 text-white">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-semibold uppercase tracking-wide text-white/50">Spent this month</div>
-              <div className="mt-1 text-3xl font-extrabold tabular tracking-tight">₹48,210</div>
+        <div className="rounded-2xl bg-[rgb(var(--ink))] p-4 text-white sm:p-5">
+          <div className="flex items-start justify-between gap-3 sm:gap-4">
+            <div className="min-w-0">
+              <div className="whitespace-nowrap text-[9px] font-semibold uppercase tracking-wide text-white/50 sm:text-[10px]">Spent this month</div>
+              <div className="mt-1 text-2xl font-extrabold tabular tracking-tight sm:text-3xl">₹48,210</div>
               <div className="mt-1.5 text-[11px] font-medium text-white/60">
                 <span className="text-[rgb(var(--amber))]">↓ 8.4%</span> vs July
               </div>
             </div>
-            <svg viewBox={`0 0 ${W} ${H}`} className="h-[72px] w-[150px] shrink-0" preserveAspectRatio="none" aria-hidden>
+            <svg viewBox={`0 0 ${W} ${H}`} className="h-14 w-[110px] shrink-0 sm:h-[72px] sm:w-[150px]" preserveAspectRatio="none" aria-hidden>
               <defs>
                 <linearGradient id="heroFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="rgb(var(--amber))" stopOpacity="0.45" />
@@ -430,9 +430,9 @@ function HeroPreview() {
           <div className="mt-3 space-y-2.5">
             {categories.map((c, i) => (
               <div key={c.name}>
-                <div className="flex items-baseline justify-between text-[10px]">
-                  <span className="font-semibold">{c.name}</span>
-                  <span className="tabular font-bold text-muted">{c.amount}</span>
+                <div className="flex items-baseline justify-between gap-3 text-[10px]">
+                  <span className="truncate font-semibold">{c.name}</span>
+                  <span className="tabular shrink-0 font-bold text-muted">{c.amount}</span>
                 </div>
                 <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
                   <div
@@ -450,9 +450,9 @@ function HeroPreview() {
           <span className="grid h-7 w-7 place-items-center rounded-full bg-blush text-[10px] font-bold text-[rgb(var(--debit))]">S</span>
           <div className="min-w-0 flex-1">
             <div className="text-[11px] font-semibold leading-tight">Swiggy</div>
-            <div className="text-[9px] text-muted">Food › Delivery · UPI · today</div>
+            <div className="truncate text-[9px] text-muted">Food › Delivery · UPI · today</div>
           </div>
-          <span className="text-[11px] font-bold tabular text-debit">−₹486</span>
+          <span className="shrink-0 text-[11px] font-bold tabular text-debit">−₹486</span>
         </div>
       </div>
     </div>
