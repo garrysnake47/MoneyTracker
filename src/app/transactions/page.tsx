@@ -75,6 +75,7 @@ export default function TransactionsPage() {
   const [deletedLoading, setDeletedLoading] = useState(false);
   // A failed delete/restore used to do nothing at all — always say why.
   const [actionError, setActionError] = useState<string | null>(null);
+  const [deletedError, setDeletedError] = useState<string | null>(null);
 
   // Default to the current month (a new month starts fresh); "All time" clears it.
   const monthStart = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
@@ -103,10 +104,28 @@ export default function TransactionsPage() {
 
   const loadDeleted = useCallback(async () => {
     setDeletedLoading(true);
-    const res = await fetch('/api/transactions/deleted');
-    const data = await res.json();
-    setDeleted(data.items ?? []);
-    setDeletedLoading(false);
+    try {
+      const res = await fetch('/api/transactions/deleted');
+      // A 5xx returns an HTML error page — parsing it as JSON throws, and
+      // without the finally below the panel would sit on "Loading…" forever.
+      if (!res.ok) {
+        const msg = await res
+          .json()
+          .then((d) => d.error as string | undefined)
+          .catch(() => null);
+        setDeletedError(msg || `Couldn't load deleted transactions (${res.status})`);
+        setDeleted([]);
+        return;
+      }
+      const data = await res.json();
+      setDeleted(data.items ?? []);
+      setDeletedError(null);
+    } catch {
+      setDeletedError("Couldn't reach the server.");
+      setDeleted([]);
+    } finally {
+      setDeletedLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -207,8 +226,14 @@ export default function TransactionsPage() {
           <button
             onClick={() => {
               setShowDeleted(true);
+              loadDeleted();
               // Jump to the section rather than making them scroll the whole list.
-              requestAnimationFrame(() => document.getElementById('deleted')?.scrollIntoView({ block: 'start' }));
+              // Two frames: the panel has to render before it can be scrolled to.
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() =>
+                  document.getElementById('deleted')?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+                ),
+              );
             }}
             className="btn-outline shrink-0 gap-1.5 whitespace-nowrap px-3 py-2"
             title="Transactions you've deleted — restore them from here"
@@ -372,6 +397,11 @@ export default function TransactionsPage() {
 
             {deletedLoading ? (
               <div className="py-6 text-center text-sm text-muted">Loading…</div>
+            ) : deletedError ? (
+              <div className="rounded-2xl bg-blush px-4 py-3 text-sm font-medium text-[rgb(var(--debit))]">
+                {deletedError}
+                <button onClick={loadDeleted} className="ml-2 underline">Retry</button>
+              </div>
             ) : deleted.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border py-8 text-center text-sm text-muted">
                 Nothing deleted yet.
