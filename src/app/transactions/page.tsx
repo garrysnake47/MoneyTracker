@@ -24,6 +24,7 @@ interface Txn {
   categoryLocked: boolean;
   llmConfidence: number | null;
   isRecurring: boolean;
+  isCreditCard: boolean;
 }
 
 // All formatting is pinned to IST so grouping and headings never disagree
@@ -84,6 +85,26 @@ export default function TransactionsPage() {
     load();
   }, [load]);
 
+  async function remove(t: Txn) {
+    if (!confirm(`Delete "${t.label}" (${inr(t.amount)})? This can't be undone.`)) return;
+    const res = await fetch(`/api/transactions/${t.id}`, { method: 'DELETE' });
+    if (res.ok) {
+      if (editing === t.id) setEditing(null);
+      await load();
+    }
+  }
+
+  async function setCreditCard(t: Txn, isCreditCard: boolean) {
+    // Optimistic — the row's totals recompute immediately.
+    setItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, isCreditCard } : x)));
+    const res = await fetch(`/api/transactions/${t.id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isCreditCard }),
+    });
+    if (!res.ok) await load(); // roll back to server truth
+  }
+
   // Group by day (API already returns newest-first).
   const groups = useMemo(() => {
     const m = new Map<string, Txn[]>();
@@ -93,8 +114,12 @@ export default function TransactionsPage() {
       m.get(k)!.push(t);
     }
     return Array.from(m.entries()).map(([key, list]) => {
+      // Card charges don't move the account balance — the bill payment does.
       let net = 0;
-      for (const t of list) net += (t.direction === 'credit' ? 1 : -1) * Number(t.amount);
+      for (const t of list) {
+        if (t.isCreditCard) continue;
+        net += (t.direction === 'credit' ? 1 : -1) * Number(t.amount);
+      }
       return { key, iso: list[0].occurredAt, list, net };
     });
   }, [items]);
@@ -175,19 +200,40 @@ export default function TransactionsPage() {
                           {t.accountLast4 ? ` ··${t.accountLast4}` : ''}
                           {t.isRecurring ? ' · 🔁' : ''}
                         </div>
-                        <div className="mt-1"><CategoryBadge t={t} /></div>
+                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                          <CategoryBadge t={t} />
+                          {t.isCreditCard && (
+                            <span className="rounded-full bg-sky px-2.5 py-0.5 text-xs font-semibold text-[rgb(var(--peri-2))]">Credit card</span>
+                          )}
+                        </div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className={`text-sm font-semibold tabular ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
                           {t.direction === 'debit' ? '−' : '+'}{inr(t.amount)}
                         </div>
-                        <button onClick={() => setEditing(editing === t.id ? null : t.id)} className="mt-1 text-xs text-accent">
-                          {editing === t.id ? 'Close' : 'Edit'}
-                        </button>
+                        <div className="mt-1 flex items-center justify-end gap-2">
+                          <button onClick={() => setEditing(editing === t.id ? null : t.id)} className="text-xs font-semibold text-accent">
+                            {editing === t.id ? 'Close' : 'Edit'}
+                          </button>
+                          <button onClick={() => remove(t)} className="text-xs font-semibold text-muted hover:text-debit">
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </div>
                     {editing === t.id && (
-                      <div className="mt-3">
+                      <div className="mt-3 space-y-3">
+                        <label className="flex items-center gap-2 rounded-2xl bg-surface-2 px-3 py-2.5 text-sm cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={t.isCreditCard}
+                            onChange={(e) => setCreditCard(t, e.target.checked)}
+                          />
+                          <span>
+                            Charged to a credit card
+                            <span className="block text-xs text-muted">Counts as spend, but isn’t deducted from your account balance.</span>
+                          </span>
+                        </label>
                         <CategoryEditor
                           txnId={t.id}
                           merchant={t.merchant}

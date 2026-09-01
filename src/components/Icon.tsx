@@ -64,6 +64,13 @@ const paths: Record<string, React.ReactNode> = {
       <path d="M16 11h.01" />
     </>
   ),
+  creditcard: (
+    <>
+      <rect x="2" y="5" width="20" height="14" rx="2.5" />
+      <path d="M2 10h20" />
+      <path d="M6 15h3" />
+    </>
+  ),
   receipt: (
     <>
       <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z" />

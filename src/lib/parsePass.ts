@@ -11,6 +11,7 @@ import { prisma } from './db';
 import { parseEmail } from './parsers';
 import { normalizeMerchant } from './merchant';
 import type { ParsedTxn } from './parsers/types';
+import { creditCardLast4s } from './creditCards';
 
 const DEDUPE_WINDOW_MS = 3 * 60 * 1000; // ±3 minutes
 
@@ -62,6 +63,10 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
   });
 
   const res: ParsePassResult = { processed: 0, parsed: 0, ignored: 0, unparsed: 0, merged: 0, errors: 0 };
+
+  // Card alerts don't distinguish credit from debit cards — the user's
+  // registered last-4s do (see lib/creditCards.ts).
+  const ccLast4 = await creditCardLast4s(userId);
 
   for (const email of pending) {
     res.processed++;
@@ -131,6 +136,7 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
           accountLast4: txn.accountLast4,
           instrument: txn.instrument,
           referenceId: txn.referenceId,
+          isCreditCard: txn.instrument === 'card' && txn.accountLast4 != null && ccLast4.has(txn.accountLast4),
           categorySource: 'unassigned',
         },
       });

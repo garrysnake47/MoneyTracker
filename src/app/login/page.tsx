@@ -25,7 +25,13 @@ function LoginForm() {
       router.push(params.get('next') || '/');
       router.refresh();
     } else {
-      setError((await res.json()).error || 'Login failed');
+      // A 5xx from the server is an HTML page, not JSON — don't let the parse
+      // throw and leave the form stuck on "Signing in…".
+      const msg = await res
+        .json()
+        .then((d) => d.error as string | undefined)
+        .catch(() => null);
+      setError(msg || `Login failed (${res.status})`);
       setBusy(false);
     }
   }

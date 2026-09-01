@@ -9,6 +9,7 @@ const LINKS = [
   { href: '/', label: 'Overview', icon: 'overview' },
   { href: '/transactions', label: 'Transactions', icon: 'transactions' },
   { href: '/budget', label: 'Budget', icon: 'budget' },
+  { href: '/credit-card', label: 'Credit Card', icon: 'creditcard' },
   { href: '/review', label: 'Review', icon: 'review' },
   { href: '/keywords', label: 'Keywords', icon: 'keywords' },
   { href: '/subscriptions', label: 'Subscriptions', icon: 'subscriptions' },

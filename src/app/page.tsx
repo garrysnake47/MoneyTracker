@@ -18,6 +18,8 @@ interface Overview {
   totalMoneyIn: number;
   allMoneyOut: number;
   prevMonthSpend: number;
+  accountOutflow: number;
+  creditCardSpend: number;
   deltaPct: number | null;
   categoryBreakdown: { categoryId: number | null; categoryName: string; amount: number }[];
   incomeBreakdown: { categoryId: number | null; categoryName: string; amount: number }[];
@@ -71,14 +73,16 @@ export default function OverviewPage() {
     refresh(month);
   }, [month, refresh]);
 
-  const net = data ? data.totalMoneyIn - data.totalSpend : 0;
+  // Card charges are spend but haven't left the account yet, so the balance
+  // view nets money in against account outflow only.
+  const net = data ? data.totalMoneyIn - data.accountOutflow : 0;
 
   return (
     <div className="space-y-5 pt-1">
       <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Overview</h1>
-          <p className="text-sm text-muted">Spend excludes transfers, EMIs counted, card bills netted out.</p>
+          <p className="text-sm text-muted">Spend excludes transfers, EMIs counted, card bills netted out. Credit-card charges count as spend but not as account outflow.</p>
         </div>
         <div className="flex items-center gap-3">
           <select value={month} onChange={(e) => setMonth(e.target.value)} className="input w-auto rounded-full">
@@ -95,17 +99,22 @@ export default function OverviewPage() {
       ) : (
         <>
           {/* KPI tiles — each a distinct color */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
             <KpiCard label="Total spend" value={inr(data.totalSpend)} icon="wallet" tone="ink" delay={0}>
               {data.deltaPct != null && (
                 <span>{data.deltaPct > 0 ? '▲' : '▼'} {Math.abs(data.deltaPct)}% vs last month</span>
               )}
             </KpiCard>
-            <KpiCard label="Money in" value={inr(data.totalMoneyIn)} icon="income" tone="mint" delay={70} />
-            <KpiCard label="Net saved" value={inr(net)} icon="piggy" tone={net >= 0 ? 'sand' : 'blush'} delay={140}>
-              <span>{net >= 0 ? 'surplus' : 'deficit'}</span>
+            <KpiCard label="Money in" value={inr(data.totalMoneyIn)} icon="income" tone="mint" delay={70}>
+              <span>credited to your account</span>
             </KpiCard>
-            <KpiCard label="Transactions" value={String(data.txnCount)} icon="receipt" tone="lilac" delay={210}>
+            <KpiCard label="Net saved" value={inr(net)} icon="piggy" tone={net >= 0 ? 'sand' : 'blush'} delay={140}>
+              <span>{net >= 0 ? 'surplus' : 'deficit'} · in − out of account</span>
+            </KpiCard>
+            <KpiCard label="Credit card" value={inr(data.creditCardSpend)} icon="creditcard" tone="sky" delay={210}>
+              <a href="/credit-card" className="underline decoration-muted/50">not deducted from balance →</a>
+            </KpiCard>
+            <KpiCard label="Transactions" value={String(data.txnCount)} icon="receipt" tone="lilac" delay={280}>
               {data.uncategorizedCount > 0 && <a href="/review" className="underline decoration-muted/50">{data.uncategorizedCount} to review →</a>}
             </KpiCard>
           </div>

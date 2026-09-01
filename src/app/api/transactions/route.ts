@@ -84,6 +84,11 @@ export async function GET(req: NextRequest) {
     if (maxAmount) (where.amount as any).lte = new Prisma.Decimal(maxAmount);
   }
 
+  // creditCard=1 → only card charges; =0 → only account money.
+  const creditCard = sp.get('creditCard');
+  if (creditCard === '1') where.isCreditCard = true;
+  else if (creditCard === '0') where.isCreditCard = false;
+
   if (sp.get('reviewQueue') === '1') {
     where.categoryId = null;
     where.categoryLocked = false;
@@ -125,6 +130,7 @@ export async function GET(req: NextRequest) {
       categoryLocked: t.categoryLocked,
       llmConfidence: t.llmConfidence,
       isRecurring: t.isRecurring,
+      isCreditCard: t.isCreditCard,
       notes: t.notes,
     })),
   });

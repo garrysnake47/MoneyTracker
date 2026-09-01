@@ -24,7 +24,11 @@ export default function SignupPage() {
       router.push('/settings?welcome=1');
       router.refresh();
     } else {
-      setError((await res.json()).error || 'Sign up failed');
+      const msg = await res
+        .json()
+        .then((d) => d.error as string | undefined)
+        .catch(() => null);
+      setError(msg || `Sign up failed (${res.status})`);
       setBusy(false);
     }
   }

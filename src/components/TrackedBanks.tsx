@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react';
 
-interface BuiltIn { name: string; senders: string[] }
+interface Sender { address: string; enabled: boolean }
+interface BuiltIn { name: string; senders: Sender[] }
 
 export default function TrackedBanks() {
   const [builtIn, setBuiltIn] = useState<BuiltIn[]>([]);
@@ -36,6 +37,17 @@ export default function TrackedBanks() {
       setBusy(false);
     }
   }
+  // Built-in senders can't be deleted (they ship with a parser) but they can be
+  // switched off, which drops them from the Gmail query.
+  async function toggle(address: string, enabled: boolean) {
+    await fetch('/api/banks', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender: address, enabled }),
+    });
+    await load();
+  }
+
   async function remove(s: string) {
     await fetch(`/api/banks?sender=${encodeURIComponent(s)}`, { method: 'DELETE' });
     await load();
@@ -44,35 +56,62 @@ export default function TrackedBanks() {
   return (
     <section className="card p-5 space-y-4">
       <div>
-        <h2 className="text-sm font-semibold">Tracked bank emails</h2>
+        <h2 className="text-[15px] font-bold">Tracked bank emails</h2>
         <p className="text-xs text-muted">These sender addresses are scanned in your Gmail. Add your bank if it isn’t listed.</p>
       </div>
 
       {/* Built-in banks with parsers */}
       <div className="space-y-2">
-        {builtIn.map((b) => (
-          <div key={b.name} className="rounded-lg bg-surface-2 p-3">
-            <div className="text-sm font-medium mb-1">{b.name} <span className="text-[10px] text-credit ml-1">✓ auto-parsed</span></div>
-            <div className="flex flex-wrap gap-1.5">
-              {b.senders.map((s) => (
-                <span key={s} className="rounded-full bg-surface border border-border px-2.5 py-0.5 text-xs font-mono">{s}</span>
-              ))}
+        {builtIn.map((b) => {
+          const on = b.senders.filter((s) => s.enabled).length;
+          return (
+            <div key={b.name} className="rounded-2xl bg-surface-2 p-3.5">
+              <div className="text-sm font-semibold mb-2">
+                {b.name}
+                {on > 0 ? (
+                  <span className="text-[10px] text-credit ml-1.5 font-medium">✓ auto-parsed</span>
+                ) : (
+                  <span className="text-[10px] text-muted ml-1.5 font-medium">all senders off</span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {b.senders.map((s) => (
+                  <span
+                    key={s.address}
+                    className={`inline-flex items-center gap-1 rounded-full border pl-3 pr-1 py-1 text-xs font-mono transition-colors ${
+                      s.enabled ? 'bg-surface border-border text-text' : 'bg-transparent border-dashed border-border text-muted line-through'
+                    }`}
+                  >
+                    {s.address}
+                    <button
+                      onClick={() => toggle(s.address, !s.enabled)}
+                      className={`h-5 w-5 rounded-full grid place-items-center text-sm leading-none transition-colors ${
+                        s.enabled ? 'text-muted hover:bg-debit hover:text-white' : 'text-muted hover:bg-credit hover:text-white'
+                      }`}
+                      aria-label={s.enabled ? `Stop scanning ${s.address}` : `Scan ${s.address} again`}
+                      title={s.enabled ? 'Stop scanning this sender' : 'Scan this sender again'}
+                    >
+                      {s.enabled ? '\u00d7' : '+'}
+                    </button>
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Custom senders */}
       <div className="border-t border-border pt-4">
-        <div className="text-sm font-medium mb-2">Your added senders</div>
+        <div className="text-sm font-semibold mb-2">Your added senders</div>
         {custom.length === 0 ? (
           <p className="text-xs text-muted mb-3">None yet.</p>
         ) : (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {custom.map((s) => (
-              <span key={s} className="inline-flex items-center gap-1 rounded-full bg-accent/10 border border-accent/30 pl-2.5 pr-1 py-0.5 text-xs font-mono text-accent">
+              <span key={s} className="inline-flex items-center gap-1 rounded-full bg-sand border border-border pl-3 pr-1 py-1 text-xs font-mono text-text">
                 {s}
-                <button onClick={() => remove(s)} className="h-4 w-4 rounded-full grid place-items-center hover:text-white hover:bg-debit" aria-label="Remove">×</button>
+                <button onClick={() => remove(s)} className="h-5 w-5 rounded-full grid place-items-center text-muted hover:text-white hover:bg-debit" aria-label={`Remove ${s}`}>×</button>
               </span>
             ))}
           </div>

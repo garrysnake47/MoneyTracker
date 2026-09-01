@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { hashPassword } from '@/lib/password';
 import { SESSION_COOKIE, createSession } from '@/lib/auth';
+import { dbErrorResponse } from '@/lib/db-error';
 
 export const runtime = 'nodejs';
 
@@ -22,10 +23,15 @@ export async function POST(req: NextRequest) {
   if (!cleanEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cleanEmail)) return NextResponse.json({ error: 'Enter a valid email' }, { status: 400 });
   if (pw.length < 6) return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
 
-  const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
-  if (existing) return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
+  let user;
+  try {
+    const existing = await prisma.user.findUnique({ where: { email: cleanEmail } });
+    if (existing) return NextResponse.json({ error: 'An account with this email already exists' }, { status: 409 });
 
-  const user = await prisma.user.create({ data: { email: cleanEmail, passwordHash: hashPassword(pw) } });
+    user = await prisma.user.create({ data: { email: cleanEmail, passwordHash: hashPassword(pw) } });
+  } catch (err) {
+    return dbErrorResponse(err);
+  }
   // sync_state is created lazily on the user's first sync.
 
   const res = NextResponse.json({ ok: true });

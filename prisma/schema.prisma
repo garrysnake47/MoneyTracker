@@ -25,6 +25,8 @@ model User {
   salaryDay     Int      @default(1) @map("salary_day")
   // Extra bank alert sender addresses this user wants tracked (beyond the built-ins).
   customSenders String[] @default([]) @map("custom_senders")
+  // Built-in sender addresses this user has switched off — excluded from the Gmail query.
+  disabledSenders String[] @default([]) @map("disabled_senders")
   createdAt     DateTime @default(now()) @map("created_at")
 
   @@map("users")
@@ -72,6 +74,10 @@ model Transaction {
   displayLabel   String?   @map("display_label")
   llmConfidence  Float?    @map("llm_confidence")
   isRecurring    Boolean   @default(false) @map("is_recurring")
+  /// Charged to a credit card rather than the bank account. Credit-card spend
+  /// counts towards total spend but never reduces the account balance — the
+  /// bill payment itself is the account outflow (and is a Transfer, not spend).
+  isCreditCard   Boolean   @default(false) @map("is_credit_card")
   subscriptionId Int?      @map("subscription_id")
   notes          String?
   createdAt      DateTime  @default(now()) @map("created_at")
@@ -88,6 +94,19 @@ model Transaction {
 }
 
 /// Global category taxonomy (shared across users).
+/// A credit card the user owns, identified by the last 4 digits that appear in
+/// card alert emails. Registering a card retro-flags matching transactions.
+model CreditCard {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  last4     String
+  label     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, last4])
+  @@map("credit_cards")
+}
+
 model Category {
   id        Int     @id @default(autoincrement())
   name      String

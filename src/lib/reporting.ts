@@ -18,9 +18,11 @@ export interface CategoryBreakdownItem {
 
 export interface MonthlyOverview {
   month: string; // YYYY-MM
-  totalSpend: number; // is_expense debits only
-  totalMoneyIn: number; // all credits
+  totalSpend: number; // is_expense debits — account AND credit card
+  totalMoneyIn: number; // credits landing in the bank account (excludes card refunds)
   allMoneyOut: number; // all debits (the "all money movement" view, §8.1)
+  accountOutflow: number; // debits that actually left the bank account
+  creditCardSpend: number; // is_expense debits charged to a registered credit card
   prevMonthSpend: number;
   deltaPct: number | null;
   categoryBreakdown: CategoryBreakdownItem[];
@@ -121,7 +123,7 @@ export async function getTrend(userId: number, endMonth: string, months = 6): Pr
 
   const txns = await prisma.transaction.findMany({
     where: { userId, occurredAt: { gte: start, lt: end } },
-    select: { amount: true, direction: true, occurredAt: true, categoryId: true, subcategoryId: true },
+    select: { amount: true, direction: true, occurredAt: true, categoryId: true, subcategoryId: true, isCreditCard: true },
   });
 
   // Initialize buckets oldest → newest.
@@ -138,7 +140,7 @@ export async function getTrend(userId: number, endMonth: string, months = 6): Pr
     if (!b) continue;
     const amt = Number(t.amount);
     if (t.direction === 'credit') {
-      b.income += amt;
+      if (!t.isCreditCard) b.income += amt;
     } else {
       const effId = t.subcategoryId ?? t.categoryId;
       const isExpense = effId == null ? true : flags.get(effId) ?? true;
@@ -166,7 +168,7 @@ export async function getWeeklyTrend(userId: number, month: string): Promise<Tre
 
   const txns = await prisma.transaction.findMany({
     where: { userId, occurredAt: { gte: start, lt: end } },
-    select: { amount: true, direction: true, occurredAt: true, categoryId: true, subcategoryId: true },
+    select: { amount: true, direction: true, occurredAt: true, categoryId: true, subcategoryId: true, isCreditCard: true },
   });
 
   for (const t of txns) {
@@ -175,7 +177,7 @@ export async function getWeeklyTrend(userId: number, month: string): Promise<Tre
     const b = buckets[idx];
     const amt = Number(t.amount);
     if (t.direction === 'credit') {
-      b.income += amt;
+      if (!t.isCreditCard) b.income += amt;
     } else {
       const effId = t.subcategoryId ?? t.categoryId;
       const isExpense = effId == null ? true : flags.get(effId) ?? true;
@@ -203,6 +205,8 @@ export async function getMonthlyOverview(userId: number, month: string): Promise
   let totalSpend = 0;
   let totalMoneyIn = 0;
   let allMoneyOut = 0;
+  let accountOutflow = 0;
+  let creditCardSpend = 0;
   let uncategorizedCount = 0;
   const catAgg = new Map<number | null, { name: string; amount: number; isExpense: boolean }>();
   const incomeAgg = new Map<string, number>();
@@ -211,20 +215,27 @@ export async function getMonthlyOverview(userId: number, month: string): Promise
   for (const t of txns) {
     const amt = Number(t.amount);
     if (t.direction === 'credit') {
-      totalMoneyIn += amt;
-      // Income breakdown: by category when set, else by label (e.g. "Salary").
-      const src = t.category?.name || t.displayLabel || 'Other income';
-      incomeAgg.set(src, (incomeAgg.get(src) ?? 0) + amt);
+      // Money in = what reached the bank account. A credit on a credit card is a
+      // refund/reversal against the card, not income.
+      if (!t.isCreditCard) {
+        totalMoneyIn += amt;
+        // Income breakdown: by category when set, else by label (e.g. "Salary").
+        const src = t.category?.name || t.displayLabel || 'Other income';
+        incomeAgg.set(src, (incomeAgg.get(src) ?? 0) + amt);
+      }
       continue;
     }
     // debit
     allMoneyOut += amt;
+    // Only account debits reduce the balance; a card charge is owed, not paid.
+    if (!t.isCreditCard) accountOutflow += amt;
     const effId = t.subcategoryId ?? t.categoryId;
     const isExpense = effId == null ? true : flags.get(effId) ?? true;
     if (t.categoryId == null) uncategorizedCount++;
 
     if (isExpense) {
       totalSpend += amt;
+      if (t.isCreditCard) creditCardSpend += amt;
       const key = t.categoryId;
       const name = t.category?.name ?? 'Uncategorized';
       const cur = catAgg.get(key) ?? { name, amount: 0, isExpense };
@@ -256,6 +267,8 @@ export async function getMonthlyOverview(userId: number, month: string): Promise
     totalSpend: Math.round(totalSpend * 100) / 100,
     totalMoneyIn: Math.round(totalMoneyIn * 100) / 100,
     allMoneyOut: Math.round(allMoneyOut * 100) / 100,
+    accountOutflow: Math.round(accountOutflow * 100) / 100,
+    creditCardSpend: Math.round(creditCardSpend * 100) / 100,
     prevMonthSpend: Math.round(prevMonthSpend * 100) / 100,
     deltaPct: deltaPct == null ? null : Math.round(deltaPct * 10) / 10,
     categoryBreakdown,

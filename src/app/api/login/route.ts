@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyPassword } from '@/lib/password';
 import { SESSION_COOKIE, createSession } from '@/lib/auth';
+import { dbErrorResponse } from '@/lib/db-error';
 
 export const runtime = 'nodejs';
 
@@ -10,7 +11,12 @@ export async function POST(req: NextRequest) {
   const cleanEmail = String(email ?? '').trim().toLowerCase();
   const pw = String(password ?? '');
 
-  const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+  let user;
+  try {
+    user = await prisma.user.findUnique({ where: { email: cleanEmail } });
+  } catch (err) {
+    return dbErrorResponse(err);
+  }
   if (!user || !verifyPassword(pw, user.passwordHash)) {
     return NextResponse.json({ error: 'Invalid email or password' }, { status: 401 });
   }

@@ -9,9 +9,13 @@ export const runtime = 'nodejs';
 export async function GET(req: NextRequest) {
   const userId = await requireUser(req);
   if (userId instanceof NextResponse) return userId;
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { customSenders: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { customSenders: true, disabledSenders: true } });
+  const disabled = new Set(user?.disabledSenders ?? []);
   return NextResponse.json({
-    builtIn: BANKS.map((b) => ({ name: b.displayName, senders: b.senders })),
+    builtIn: BANKS.map((b) => ({
+      name: b.displayName,
+      senders: b.senders.map((s) => ({ address: s, enabled: !disabled.has(s.toLowerCase()) })),
+    })),
     custom: user?.customSenders ?? [],
   });
 }
@@ -27,6 +31,25 @@ export async function POST(req: NextRequest) {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { customSenders: true } });
   const set = new Set([...(user?.customSenders ?? []), sender]);
   await prisma.user.update({ where: { id: userId }, data: { customSenders: Array.from(set) } });
+  return NextResponse.json({ ok: true });
+}
+
+/**
+ * PATCH { sender, enabled }: switch a built-in sender on/off. Disabled senders
+ * are dropped from the Gmail query without touching the shipped bank config.
+ */
+export async function PATCH(req: NextRequest) {
+  const userId = await requireUser(req);
+  if (userId instanceof NextResponse) return userId;
+  const body = await req.json().catch(() => ({}));
+  const sender = String(body.sender ?? '').trim().toLowerCase();
+  if (!sender) return NextResponse.json({ error: 'sender required' }, { status: 400 });
+
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { disabledSenders: true } });
+  const set = new Set(user?.disabledSenders ?? []);
+  if (body.enabled === false) set.add(sender);
+  else set.delete(sender);
+  await prisma.user.update({ where: { id: userId }, data: { disabledSenders: Array.from(set) } });
   return NextResponse.json({ ok: true });
 }
 

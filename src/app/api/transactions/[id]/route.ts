@@ -30,6 +30,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json().catch(() => ({}));
 
+  // Credit-card flag toggle (no category involved).
+  if (typeof body.isCreditCard === 'boolean' && body.mode == null && body.categoryId == null) {
+    await prisma.transaction.update({ where: { id: txnId }, data: { isCreditCard: body.isCreditCard } });
+    return NextResponse.json({ ok: true, isCreditCard: body.isCreditCard });
+  }
+
   // Notes-only update.
   if (typeof body.notes === 'string' && body.mode == null && body.categoryId == null) {
     await prisma.transaction.update({ where: { id: txnId }, data: { notes: body.notes } });
@@ -68,4 +74,27 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   return NextResponse.json({ ok: true, mode: 'always', reapplied });
+}
+
+/** Delete a transaction. Manual entries and mis-parsed rows can be removed. */
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await requireUser(req);
+  if (userId instanceof NextResponse) return userId;
+
+  const { id } = await params;
+  const txnId = Number(id);
+  if (!Number.isInteger(txnId)) return NextResponse.json({ error: 'bad id' }, { status: 400 });
+
+  const txn = await prisma.transaction.findFirst({ where: { id: txnId, userId } });
+  if (!txn) return NextResponse.json({ error: 'not found' }, { status: 404 });
+
+  // Re-parsing the source email would recreate the row, so mark it consumed.
+  if (txn.rawEmailId != null) {
+    await prisma.rawEmail.update({
+      where: { id: txn.rawEmailId },
+      data: { parseStatus: 'ignored', parseError: 'deleted by user' },
+    });
+  }
+  await prisma.transaction.delete({ where: { id: txn.id } });
+  return NextResponse.json({ ok: true });
 }

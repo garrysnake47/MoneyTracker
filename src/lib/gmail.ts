@@ -167,9 +167,10 @@ export async function syncGmail(userId: number, days = Number(process.env.BACKFI
   const gmail = google.gmail({ version: 'v1', auth: client });
 
   // Built-in bank senders + this user's own custom ones.
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { customSenders: true } });
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { customSenders: true, disabledSenders: true } });
   const custom = (user?.customSenders ?? []).map((s) => s.trim().toLowerCase()).filter(Boolean);
-  const senders = Array.from(new Set([...allSenders(), ...custom]));
+  const disabled = new Set((user?.disabledSenders ?? []).map((s) => s.trim().toLowerCase()));
+  const senders = Array.from(new Set([...allSenders(), ...custom])).filter((s) => !disabled.has(s));
   const fromClause = senders.map((s) => `from:${s}`).join(' OR ');
   const query = `(${fromClause}) newer_than:${days}d`;
 
