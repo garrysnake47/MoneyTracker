@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Two `next dev` processes in one checkout share .next and corrupt each
+  // other's build output (the second one's shutdown deletes pages the first is
+  // still serving, which surfaces as sudden 404s/500s). Setting NEXT_DIST_DIR
+  // gives a second instance its own directory.
+  distDir: process.env.NEXT_DIST_DIR || '.next',
   // Prisma + googleapis are server-only; keep them external so they are not
   // bundled into serverless client code.
   serverExternalPackages: ['@prisma/client', 'prisma', 'googleapis'],
