@@ -5,6 +5,10 @@ import { inr } from '@/lib/format';
 import { useCategories } from '@/lib/useCategories';
 import CategoryEditor from '@/components/CategoryEditor';
 import AddTransaction from '@/components/AddTransaction';
+import Icon from '@/components/Icon';
+import Select, { CategoryDropdown } from '@/components/Select';
+import { categoryStyle } from '@/lib/palette';
+import CategoryCapsule from '@/components/CategoryCapsule';
 
 interface Txn {
   id: number;
@@ -244,46 +248,60 @@ export default function TransactionsPage() {
             )}
           </button>
           <button onClick={() => setAdding(true)} className="btn-primary shrink-0 px-4 py-2">
-            <span className="text-base leading-none">+</span> Add
+            <Icon name="plus" size={16} /> Add
           </button>
         </div>
       </header>
 
       {actionError && (
-        <div className="rounded-2xl bg-blush px-4 py-3 text-sm font-medium text-[rgb(var(--debit))]">
-          {actionError}
+        <div className="flex items-center gap-2 rounded-2xl bg-blush px-4 py-3 text-sm font-semibold text-[rgb(var(--debit))]">
+          <Icon name="alert" size={16} className="shrink-0" /> {actionError}
         </div>
       )}
 
       {/* Filters */}
-      <div className="card p-3 sm:p-4 animate-fade-up" style={{ animationDelay: '60ms' }}>
-        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-          <div className="relative sm:col-span-1">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="m21 21-4.3-4.3" /></svg>
+      {/* Filters — one row, everything on the same baseline including the
+          reset link, which used to wrap onto a line of its own. */}
+      <div className="card p-3 sm:p-4 animate-fade-up relative z-30" style={{ animationDelay: '60ms' }}>
+        <div className="flex flex-col gap-2.5 lg:flex-row lg:items-center">
+          <div className="relative lg:w-48">
+            <Icon name="search" size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
             <input placeholder="Search merchant…" value={merchant} onChange={(e) => { setPage(1); setMerchant(e.target.value); }} className="input pl-9" />
           </div>
-          <select value={categoryId} onChange={(e) => { setPage(1); setCategoryId(e.target.value); }} className="select">
-            <option value="">All categories</option>
-            {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
-          <select value={direction} onChange={(e) => { setPage(1); setDirection(e.target.value); }} className="select">
-            <option value="">Income &amp; expense</option>
-            <option value="debit">Expense only</option>
-            <option value="credit">Income only</option>
-          </select>
-          <div className="grid grid-cols-2 gap-2.5 sm:contents">
-            <input type="date" value={from} onChange={(e) => { setPage(1); setFrom(e.target.value); }} className="input" aria-label="From date" />
-            <input type="date" value={to} onChange={(e) => { setPage(1); setTo(e.target.value); }} className="input" aria-label="To date" />
+          <div className="lg:w-52">
+            <CategoryDropdown
+              categories={categories}
+              value={{ categoryId: categoryId ? Number(categoryId) : null, subcategoryId: null }}
+              onChange={(v) => { setPage(1); setCategoryId(v.categoryId ? String(v.categoryId) : ''); }}
+              placeholder="All categories"
+              allowClear
+            />
           </div>
+          <div className="lg:w-52">
+            <Select
+              value={direction}
+              onChange={(v) => { setPage(1); setDirection(v); }}
+              placeholder="Income & expense"
+              options={[
+                { value: '', label: 'Income & expense', icon: 'transfers' },
+                { value: 'debit', label: 'Expense only', icon: 'wallet', tone: '#D6584E' },
+                { value: 'credit', label: 'Income only', icon: 'income', tone: '#2A8A69' },
+              ]}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2.5 lg:flex lg:flex-1">
+            <input type="date" value={from} onChange={(e) => { setPage(1); setFrom(e.target.value); }} className="input lg:w-40" aria-label="From date" />
+            <input type="date" value={to} onChange={(e) => { setPage(1); setTo(e.target.value); }} className="input lg:w-40" aria-label="To date" />
+          </div>
+          {(merchant || categoryId || direction || from || to) && (
+            <button
+              onClick={() => { setPage(1); setMerchant(''); setCategoryId(''); setDirection(''); setFrom(''); setTo(''); }}
+              className="btn-ghost shrink-0 gap-1.5 whitespace-nowrap px-3 py-2 text-xs"
+            >
+              <Icon name="close" size={13} /> Clear filters
+            </button>
+          )}
         </div>
-        {(merchant || categoryId || direction || from || to) && (
-          <button
-            onClick={() => { setPage(1); setMerchant(''); setCategoryId(''); setDirection(''); setFrom(''); setTo(''); }}
-            className="mt-2.5 text-xs text-accent hover:underline"
-          >
-            Clear filters
-          </button>
-        )}
       </div>
 
       {loading ? (
@@ -295,45 +313,107 @@ export default function TransactionsPage() {
           {groups.map((g) => (
             <div key={g.key}>
               {/* Day header with running net */}
-              <div className="flex items-center justify-between px-1 mb-2">
-                <div className="text-xs font-semibold text-muted uppercase tracking-wide">{dayHeading(g.iso)}</div>
-                <div className={`text-xs font-semibold tabular ${g.net >= 0 ? 'text-credit' : 'text-debit'}`}>
+              <div className="mb-2 flex items-center gap-2 px-1">
+                <Icon name="calendar" size={13} className="shrink-0 text-muted" />
+                <div className="text-xs font-bold uppercase tracking-wide text-muted">{dayHeading(g.iso)}</div>
+                <span className="h-px flex-1 bg-border" />
+                <span
+                  className={`rounded-full px-2.5 py-1 text-xs font-bold tabular ${
+                    g.net >= 0 ? 'bg-mint text-[rgb(var(--credit))]' : 'bg-blush text-[rgb(var(--debit))]'
+                  }`}
+                >
                   {g.net >= 0 ? '+' : '−'}{inr(Math.abs(g.net))}
-                </div>
+                </span>
               </div>
 
-              <div className="rounded-2xl border border-border bg-surface shadow-card divide-y divide-border overflow-hidden">
-                {g.list.map((t) => (
-                  <div key={t.id} className="p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm font-medium truncate">{t.label}</div>
-                        <div className="text-xs text-muted mt-0.5">
-                          {timeOf(t.occurredAt)} · {t.instrument}
-                          {t.accountLast4 ? ` ··${t.accountLast4}` : ''}
-                          {t.isRecurring ? ' · 🔁' : ''}
+              <div className="rounded-2xl border border-border bg-surface shadow-card divide-y divide-border [&>*:first-child]:rounded-t-2xl [&>*:last-child]:rounded-b-2xl">
+                {g.list.map((t) => {
+                  const st = categoryStyle(t.categoryName, t.direction === 'debit');
+                  return (
+                  <div
+                    key={t.id}
+                    className={`p-3 transition-colors ${
+                      editing === t.id
+                        ? 'bg-surface-2/70 ring-2 ring-inset ring-[rgb(var(--ink))]'
+                        : 'hover:bg-surface-2/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      {/* Category tile — the row's colour anchor, so a glance
+                          down the list reads as categories, not grey text. */}
+                      <span
+                        className="tile h-11 w-11 shrink-0 rounded-2xl text-white"
+                        style={{ background: t.categoryId ? st.solid : 'rgb(var(--muted-soft))' }}
+                      >
+                        <Icon name={t.categoryId ? st.icon : 'other'} size={20} />
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[15px] font-bold">{t.label}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs font-semibold text-muted">
+                          <span className="tabular">{timeOf(t.occurredAt)}</span>
+                          <span className="text-muted-soft">·</span>
+                          <span className="capitalize">{t.instrument}</span>
+                          {t.accountLast4 && (
+                            <>
+                              <span className="text-muted-soft">·</span>
+                              <span className="font-mono">··{t.accountLast4}</span>
+                            </>
+                          )}
                         </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-                          <CategoryBadge t={t} />
+
+                        {/* Capsules live inside the centred row so the icon
+                            tile and the amount align to the block's middle. */}
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                          <CategoryCapsule
+                            category={t.categoryName}
+                            subcategory={t.subcategoryName}
+                            isExpense={t.direction === 'debit'}
+                            locked={t.categoryLocked}
+                          />
                           {t.isCreditCard && (
-                            <span className="rounded-full bg-sky px-2.5 py-0.5 text-xs font-semibold text-[rgb(var(--peri-2))]">Credit card</span>
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold"
+                              style={{ color: '#3A4B87', boxShadow: 'inset 0 0 0 1px #8095F240, 0 1px 2px rgb(26 28 31 / 0.06)' }}
+                            >
+                              <Icon name="creditcard" size={13} style={{ color: '#8095F2' }} /> Credit card
+                            </span>
+                          )}
+                          {t.isRecurring && (
+                            <span
+                              className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-xs font-bold"
+                              style={{ color: '#5B4A85', boxShadow: 'inset 0 0 0 1px #A78BC440, 0 1px 2px rgb(26 28 31 / 0.06)' }}
+                            >
+                              <Icon name="repeat" size={13} style={{ color: '#A78BC4' }} /> Recurring
+                            </span>
                           )}
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className={`text-sm font-semibold tabular ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
-                          {t.direction === 'debit' ? '−' : '+'}{inr(t.amount)}
-                        </div>
-                        <div className="mt-1 flex items-center justify-end gap-2">
-                          <button onClick={() => setEditing(editing === t.id ? null : t.id)} className="text-xs font-semibold text-accent">
-                            {editing === t.id ? 'Close' : 'Edit'}
-                          </button>
-                          <button onClick={() => remove(t)} className="text-xs font-semibold text-debit hover:underline">
-                            Delete
-                          </button>
-                        </div>
+
+                      <div className={`shrink-0 text-right text-base font-extrabold tabular sm:text-[17px] ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
+                        {t.direction === 'debit' ? '−' : '+'}{inr(t.amount)}
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          onClick={() => setEditing(editing === t.id ? null : t.id)}
+                          className={editing === t.id ? 'icon-btn-accent bg-[rgb(var(--ink))] text-white' : 'icon-btn-accent'}
+                          aria-label={editing === t.id ? `Close editor for ${t.label}` : `Edit ${t.label}`}
+                          title={editing === t.id ? 'Close' : 'Edit'}
+                        >
+                          <Icon name={editing === t.id ? 'close' : 'edit'} size={15} />
+                        </button>
+                        <button
+                          onClick={() => remove(t)}
+                          className="icon-btn-danger"
+                          aria-label={`Delete ${t.label}`}
+                          title="Delete"
+                        >
+                          <Icon name="trash" size={15} />
+                        </button>
                       </div>
                     </div>
+
                     {editing === t.id && (
                       <div className="mt-3 space-y-3">
                         <label className="flex items-center gap-2 rounded-2xl bg-surface-2 px-3 py-2.5 text-sm cursor-pointer">
@@ -343,8 +423,12 @@ export default function TransactionsPage() {
                             onChange={(e) => setCreditCard(t, e.target.checked)}
                           />
                           <span>
-                            Charged to a credit card
-                            <span className="block text-xs text-muted">Counts as spend, but isn’t deducted from your account balance.</span>
+                            {t.direction === 'debit' ? 'Charged to a credit card' : 'Refunded to a credit card'}
+                            <span className="block text-xs text-muted">
+                              {t.direction === 'debit'
+                                ? 'Counts as spend, but isn’t deducted from your account balance.'
+                                : 'Money returned to the card — not income, so it’s left out of “Money in”.'}
+                            </span>
                           </span>
                         </label>
                         <CategoryEditor
@@ -358,7 +442,8 @@ export default function TransactionsPage() {
                       </div>
                     )}
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))}
@@ -367,9 +452,9 @@ export default function TransactionsPage() {
 
       {pages > 1 && (
         <div className="flex items-center justify-center gap-3 pt-2">
-          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="rounded-md border border-border px-3 py-1.5 text-sm disabled:opacity-40">← Prev</button>
-          <span className="text-sm text-muted">{page} / {pages}</span>
-          <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)} className="rounded-md border border-border px-3 py-1.5 text-sm disabled:opacity-40">Next →</button>
+          <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn-outline px-4 py-1.5 text-sm">← Prev</button>
+          <span className="text-sm font-semibold text-muted tabular">{page} / {pages}</span>
+          <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)} className="btn-outline px-4 py-1.5 text-sm">Next →</button>
         </div>
       )}
 
@@ -379,7 +464,7 @@ export default function TransactionsPage() {
           onClick={() => setShowDeleted((v) => !v)}
           className="flex w-full items-center gap-2 rounded-2xl border border-border bg-surface px-4 py-3 text-left text-sm font-semibold transition-colors hover:bg-surface-2"
         >
-          <span className={`text-muted transition-transform duration-200 ${showDeleted ? 'rotate-90' : ''}`}>›</span>
+          <Icon name="chevron" size={15} className={`text-muted transition-transform duration-200 ${showDeleted ? 'rotate-90' : ''}`} />
           Deleted transactions
           {deleted.length > 0 && (
             <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs font-bold text-muted">{deleted.length}</span>
@@ -426,8 +511,12 @@ export default function TransactionsPage() {
                     </div>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button onClick={() => restore(d)} className="btn-outline px-3 py-1.5 text-xs">Restore</button>
-                    <button onClick={() => forget(d)} className="btn-ghost px-3 py-1.5 text-xs">Forget</button>
+                    <button onClick={() => restore(d)} className="btn-outline gap-1.5 px-3 py-1.5 text-xs">
+                      <Icon name="restore" size={13} /> Restore
+                    </button>
+                    <button onClick={() => forget(d)} className="btn-ghost gap-1.5 px-3 py-1.5 text-xs hover:text-debit">
+                      <Icon name="trash" size={13} /> Forget
+                    </button>
                   </div>
                 </div>
               ))
@@ -438,18 +527,5 @@ export default function TransactionsPage() {
 
       {adding && <AddTransaction onAdded={load} onClose={() => setAdding(false)} />}
     </div>
-  );
-}
-
-function CategoryBadge({ t }: { t: Txn }) {
-  if (!t.categoryId) {
-    return <span className="rounded-full bg-surface-2 px-2 py-0.5 text-xs text-muted">Uncategorized</span>;
-  }
-  return (
-    <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs text-accent">
-      {t.categoryName}
-      {t.subcategoryName ? ` › ${t.subcategoryName}` : ''}
-      {t.categoryLocked ? ' 🔒' : ''}
-    </span>
   );
 }

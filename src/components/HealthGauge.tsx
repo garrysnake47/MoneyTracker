@@ -5,8 +5,12 @@ import { inr } from '@/lib/format';
 import { AMBER, CREDIT, DEBIT, MUTED } from '@/lib/palette';
 
 /**
- * Savings-rate gauge: (income − spend) / income. Falls back to net savings when
- * there's no income in the period.
+ * Savings-rate gauge: (income − money out of the account) / income.
+ *
+ * `spend` is deliberately the ACCOUNT outflow, not total spend: a credit-card
+ * charge hasn't left the account yet, so counting it here understated what you
+ * actually kept — the gauge was reporting money as already gone while it was
+ * still sitting in the account.
  */
 export default function HealthGauge({ income, spend }: { income: number; spend: number }) {
   const net = income - spend;
@@ -35,19 +39,19 @@ export default function HealthGauge({ income, spend }: { income: number; spend: 
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           {rate == null ? (
             <>
-              <div className="text-[10px] uppercase tracking-wide text-muted">Net</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted">Kept</div>
               <div className={`text-lg font-semibold tabular ${net >= 0 ? 'text-credit' : 'text-debit'}`}>{inr(net)}</div>
             </>
           ) : (
             <>
               <div className="text-[26px] font-extrabold tabular">{rate}%</div>
-              <div className="text-[10px] uppercase tracking-wide text-muted">saved</div>
+              <div className="text-[10px] uppercase tracking-wide text-muted">kept</div>
             </>
           )}
         </div>
       </div>
       <div className="mt-2 text-center text-xs text-muted">
-        Net saved <span className={`font-medium ${net >= 0 ? 'text-credit' : 'text-debit'}`}>{inr(net)}</span> this month
+        Kept <span className={`font-semibold ${net >= 0 ? 'text-credit' : 'text-debit'}`}>{inr(net)}</span> in your account this month
       </div>
     </div>
   );

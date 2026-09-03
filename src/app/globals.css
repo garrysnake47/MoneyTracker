@@ -14,7 +14,12 @@
   --surface-2: 242 243 246; /* insets / tracks */
   --border: 233 235 239;
   --text: 26 28 31;         /* near-black ink */
-  --muted: 122 128 138;     /* 4.7:1 on white */
+  /* Secondary text. Was 122/128/138 (4.7:1) — legible by the letter of the
+     spec but it read as washed-out grey on every list and table. Darkened to
+     ~6.4:1 so meta lines, table headers and chip captions hold their weight. */
+  --muted: 95 101 112;
+  /* For the few places that need a lighter hint (placeholders, dividers). */
+  --muted-soft: 138 144 154;
 
   /* Primary = ink (used for solid buttons, active states, focus rings). */
   --accent: 30 32 38;
@@ -106,6 +111,48 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
   .select::-ms-expand { display: none; }
   .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold; }
   .tile { @apply grid place-items-center rounded-2xl; }
+
+  /* ── Surfaces ──────────────────────────────────────────────────────────
+     A page of identical white cards reads flat. These give a section a tinted
+     ground that still belongs to the palette. Colour comes from --tone-*,
+     which each usage sets inline from categoryStyle(). */
+  .card-tinted {
+    @apply relative overflow-hidden rounded-3xl border shadow-card;
+    background-color: var(--tone-soft, rgb(var(--surface)));
+    border-color: var(--tone-border, rgb(var(--border)));
+  }
+  /* Hero panel: a page's headline number on flat ink — no gradient. */
+  .card-hero {
+    @apply relative overflow-hidden rounded-3xl bg-[rgb(var(--ink))] text-white shadow-ink;
+  }
+
+  /* ── Badges ────────────────────────────────────────────────────────────
+     Tinted ground + darkened same-hue text, so a badge is legibly coloured
+     rather than pale-on-pale. Set --tone-soft / --tone-ink inline. */
+  .badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold leading-none;
+    background: var(--tone-soft, rgb(var(--surface-2)));
+    color: var(--tone-ink, rgb(var(--text)));
+    box-shadow: inset 0 0 0 1px var(--tone-border, transparent);
+  }
+  .badge-lg { @apply px-3 py-1.5 text-xs; }
+
+  /* ── Icon buttons ──────────────────────────────────────────────────────
+     Replaces bare "Edit"/"Delete" text links: a real hit target that shows
+     its intent on hover instead of a blue-ish word. */
+  .icon-btn {
+    @apply grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-surface text-muted transition-all;
+    @apply hover:-translate-y-px hover:text-text hover:border-[rgb(var(--text))]/25 hover:shadow-card active:translate-y-0 active:scale-95;
+  }
+  .icon-btn-danger { @apply icon-btn hover:border-transparent hover:bg-[rgb(var(--debit))] hover:text-white; }
+  .icon-btn-accent { @apply icon-btn hover:border-transparent hover:bg-[rgb(var(--ink))] hover:text-white; }
+
+  /* Pressable list row / option in a picker. */
+  .pick {
+    @apply flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-3 py-2.5 text-left text-sm transition-all;
+    @apply hover:-translate-y-0.5 hover:shadow-card;
+  }
+  .pick-on { @apply border-transparent text-white shadow-card; background: var(--tone-solid, rgb(var(--ink))); }
 }
 
 /* ── Landing page motion ────────────────────────────────────────────────── */

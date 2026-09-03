@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { inr } from '@/lib/format';
 import { useCategories } from '@/lib/useCategories';
 import Reveal from '@/components/Reveal';
+import { CategoryDropdown } from '@/components/Select';
 
 interface B {
   budgetId: number;
@@ -93,14 +94,16 @@ export default function BudgetPage() {
       </Reveal>
 
       {/* Add budget */}
-      <Reveal className="card p-5" delay={40}>
+      <Reveal className="card relative z-30 p-5" delay={40}>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
           <div>
             <label className="block text-xs text-muted mb-1.5">Category</label>
-            <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className="select">
-              <option value="">— Category —</option>
-              {available.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
+            <CategoryDropdown
+              categories={available}
+              value={{ categoryId: categoryId ? Number(categoryId) : null, subcategoryId: null }}
+              onChange={(v) => setCategoryId(v.categoryId ? String(v.categoryId) : '')}
+              placeholder="Pick a category"
+            />
           </div>
           <div>
             <label className="block text-xs text-muted mb-1.5">Monthly budget (₹)</label>

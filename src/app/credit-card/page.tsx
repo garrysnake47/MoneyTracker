@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { inr, fmtDate } from '@/lib/format';
 import Icon from '@/components/Icon';
+import Select from '@/components/Select';
 import Reveal from '@/components/Reveal';
+import { categoryStyle } from '@/lib/palette';
 
 interface Card {
   id: number;
@@ -120,34 +122,47 @@ export default function CreditCardPage() {
     return { charges, refunds };
   }, [txns]);
 
-  const byCard = useMemo(() => {
+  // Per-card charge totals. Transactions flagged by hand on the transactions
+  // page carry no accountLast4, so they'd otherwise total against no card at
+  // all and every card would read ₹0.00. One card registered => they're that
+  // card's; more than one => we can't attribute them, so they're reported
+  // separately rather than silently dropped.
+  const { byCard, unassigned } = useMemo(() => {
     const m = new Map<string, number>();
+    let unassigned = 0;
     for (const t of txns) {
       if (t.direction === 'credit') continue;
-      const k = t.accountLast4 ?? '—';
-      m.set(k, (m.get(k) ?? 0) + Number(t.amount));
+      if (t.accountLast4) m.set(t.accountLast4, (m.get(t.accountLast4) ?? 0) + Number(t.amount));
+      else unassigned += Number(t.amount);
     }
-    return m;
-  }, [txns]);
+    if (cards.length === 1) {
+      const only = cards[0].last4;
+      m.set(only, (m.get(only) ?? 0) + unassigned);
+      unassigned = 0;
+    }
+    return { byCard: m, unassigned };
+  }, [txns, cards]);
 
   return (
     <div className="space-y-5 pt-1">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <header className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Credit card</h1>
           <p className="text-sm text-muted">Card charges count as spend but don’t leave your account until you pay the bill.</p>
         </div>
-        <select value={month} onChange={(e) => setMonth(e.target.value)} className="select w-auto rounded-full">
-          {months.map((m) => (
-            <option key={m} value={m}>{monthLabel(m)}</option>
-          ))}
-        </select>
+        <Select
+          value={month}
+          options={months.map((m) => ({ value: m, label: monthLabel(m), icon: 'calendar' }))}
+          onChange={setMonth}
+          align="right"
+          className="!w-auto min-w-[11rem] rounded-full"
+        />
       </header>
 
       {/* Headline: what went on the card this month */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="animate-pop relative overflow-hidden rounded-3xl p-5 bg-[rgb(var(--ink))] text-white shadow-ink sm:col-span-2">
-          <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/[0.06]" aria-hidden />
+        <div className="card-hero animate-pop p-5 sm:col-span-2">
+          <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/[0.07]" aria-hidden />
           <div className="relative flex items-center justify-between">
             <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-white/70">Charged this month</div>
             <span className="tile h-9 w-9 bg-white/15 text-white"><Icon name="wallet" size={16} /></span>
@@ -157,7 +172,7 @@ export default function CreditCardPage() {
             {refunds > 0 ? `${inr(refunds)} refunded · net ${inr(charges - refunds)}` : `${txns.length} transaction${txns.length === 1 ? '' : 's'}`}
           </div>
         </div>
-        <div className="animate-pop rounded-3xl p-5 bg-surface border border-border shadow-card" style={{ animationDelay: '70ms' }}>
+        <div className="card-tinted animate-pop p-5" style={{ ['--tone-soft' as string]: '#EEEAF8', ['--tone-border' as string]: '#8095F240', animationDelay: '70ms' }}>
           <div className="flex items-center justify-between">
             <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted">Cards</div>
             <span className="tile h-9 w-9 bg-lilac text-[rgb(var(--peri-2))]"><Icon name="receipt" size={16} /></span>
@@ -183,17 +198,27 @@ export default function CreditCardPage() {
           ) : (
             <ul className="space-y-2">
               {cards.map((c) => (
-                <li key={c.id} className="flex items-center gap-3 rounded-2xl bg-surface-2 px-4 py-3">
-                  <span className="tile h-9 w-9 bg-sand text-[rgb(var(--amber-2))]"><Icon name="wallet" size={16} /></span>
+                <li key={c.id} className="flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 transition-all hover:-translate-y-px hover:shadow-card">
+                  <span className="tile h-10 w-10 bg-[rgb(var(--amber))] text-[rgb(var(--ink))]"><Icon name="creditcard" size={18} /></span>
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-semibold truncate">{c.label}</div>
-                    <div className="text-xs text-muted font-mono">•••• {c.last4} · {c.txnCount} transaction{c.txnCount === 1 ? '' : 's'}</div>
+                    <div className="truncate text-sm font-bold">{c.label}</div>
+                    <div className="font-mono text-xs font-medium text-muted">•••• {c.last4} · {c.txnCount} transaction{c.txnCount === 1 ? '' : 's'}</div>
                   </div>
-                  <span className="text-sm font-semibold tabular">{inr(byCard.get(c.last4) ?? 0)}</span>
-                  <button onClick={() => removeCard(c)} className="btn-ghost text-xs" aria-label={`Remove ${c.label}`}>Remove</button>
+                  <span className="text-sm font-extrabold tabular">{inr(byCard.get(c.last4) ?? 0)}</span>
+                  <button onClick={() => removeCard(c)} className="icon-btn-danger" aria-label={`Remove ${c.label}`} title="Remove card">
+                    <Icon name="trash" size={15} />
+                  </button>
                 </li>
               ))}
             </ul>
+          )}
+
+          {unassigned > 0 && (
+            <div className="flex items-center gap-2.5 rounded-2xl bg-sand px-4 py-3 text-xs font-semibold text-[rgb(var(--amber-2))]">
+              <Icon name="alert" size={15} className="shrink-0" />
+              {inr(unassigned)} of this month’s card spend isn’t tied to a card number — those charges were flagged by hand or
+              arrived without one. Open the transaction and set its card, or keep just one card registered.
+            </div>
           )}
 
           <div className="flex flex-col sm:flex-row gap-2 border-t border-border pt-4">
@@ -233,15 +258,18 @@ export default function CreditCardPage() {
             <ul className="divide-y divide-border">
               {txns.map((t) => (
                 <li key={t.id} className="flex items-center gap-3 py-2.5 text-sm">
+                  <span className="tile h-9 w-9 shrink-0 rounded-xl text-white" style={{ background: categoryStyle(t.categoryName, t.direction === 'debit').solid }}>
+                    <Icon name={categoryStyle(t.categoryName, t.direction === 'debit').icon} size={16} />
+                  </span>
                   <div className="flex-1 min-w-0">
-                    <div className="truncate font-medium">{t.label}</div>
-                    <div className="text-xs text-muted">
+                    <div className="truncate font-bold">{t.label}</div>
+                    <div className="text-xs font-medium text-muted">
                       {fmtDate(t.occurredAt)}
                       {t.accountLast4 && <span className="font-mono"> · ••{t.accountLast4}</span>}
                       {t.categoryName && ` · ${t.categoryName}${t.subcategoryName ? ` › ${t.subcategoryName}` : ''}`}
                     </div>
                   </div>
-                  <span className={`tabular font-semibold ${t.direction === 'credit' ? 'text-credit' : 'text-debit'}`}>
+                  <span className={`tabular font-extrabold ${t.direction === 'credit' ? 'text-credit' : 'text-debit'}`}>
                     {t.direction === 'credit' ? '+' : '−'}{inr(Number(t.amount))}
                   </span>
                 </li>
