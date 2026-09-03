@@ -23,6 +23,45 @@ function pickMerchant(vpa: string, parenthetical: string | undefined): string {
   return vpa.trim();
 }
 
+
+/**
+ * Who sent the money, for an incoming NEFT/IMPS/UPI credit.
+ *
+ * Only "Reference Details:" was checked before, so almost every credit fell
+ * back to the literal "BANK CREDIT" — the transactions list showed money
+ * arriving with no idea who from. Indian banks bury the payer in a narration
+ * whose shape depends on the rail, so try each known one in order of how
+ * specific it is.
+ */
+function payerName(body: string): string | null {
+  const patterns: RegExp[] = [
+    // "...credited ... by VPA sahil@okhdfc (SAHIL TARI)" — parenthetical wins.
+    /(?:by|from)\s+VPA\s+\S+\s*\(([^)]{2,40})\)/i,
+    // IMPS narration: "IMPS-503412345678-SAHIL TARI-HDFC-XXXX-Payment"
+    /\bIMPS[-\/](?:\w+[-\/])?([A-Za-z][A-Za-z .&']{2,40}?)[-\/]/i,
+    // NEFT narration: "NEFT-CITIN12345678-SAHIL TARI-..."
+    /\bNEFT[-\/](?:\w+[-\/])?([A-Za-z][A-Za-z .&']{2,40}?)[-\/]/i,
+    // UPI narration: "UPI/512345678/Payment from/SAHIL TARI"
+    /\bUPI[-\/].*?[-\/]([A-Za-z][A-Za-z .&']{2,40}?)(?:[-\/]|$)/im,
+    // Explicit phrasings.
+    /\b(?:received|credited)\s+from\s+([A-Za-z][A-Za-z .&']{2,40}?)(?=\s{2,}|[.,\n]|\s+on\b|$)/i,
+    /\bdeposited\s+by\s+([A-Za-z][A-Za-z .&']{2,40}?)(?=\s{2,}|[.,\n]|$)/i,
+    /\bsender(?:'s)?\s*(?:name)?\s*[:\-]\s*([A-Za-z][A-Za-z .&']{2,40})/i,
+    /\bremitter\s*(?:name)?\s*[:\-]\s*([A-Za-z][A-Za-z .&']{2,40})/i,
+    // Generic narration field, last resort.
+    /Reference Details?:\s*([A-Za-z][\w .&\/-]{2,40})/i,
+    /\b(?:Info|Narration|Remarks)\s*[:\-]\s*([A-Za-z][\w .&\/-]{2,40})/i,
+  ];
+  for (const re of patterns) {
+    const name = body.match(re)?.[1]?.trim().replace(/\s{2,}/g, ' ');
+    // Reject rail names and boilerplate that these narrations also contain.
+    if (name && !/^(?:HDFC|ICICI|AXIS|SBI|BANK|NEFT|IMPS|UPI|FT|PAYMENT|TRANSFER|CR|DR)$/i.test(name)) {
+      return name;
+    }
+  }
+  return null;
+}
+
 export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
   const ignore = ignoredReason(email);
   if (ignore) return { status: 'ignored', reason: ignore };
@@ -81,11 +120,9 @@ export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
   if (m) {
     const amount = parseAmount(m[1]);
     if (amount != null) {
-      // Best-effort payer: "Reference Details: FT- Sahil ..." → the narration.
-      const payer = body.match(/Reference Details?:\s*([A-Za-z][\w .&\/-]{2,40})/i)?.[1]?.trim();
       return {
         status: 'parsed',
-        txn: { amount, direction: 'credit', rawMerchant: payer || 'BANK CREDIT', occurredAt: when, accountLast4: last4(m[2]), instrument: 'netbanking', referenceId: ref },
+        txn: { amount, direction: 'credit', rawMerchant: payerName(body) || 'BANK CREDIT', occurredAt: when, accountLast4: last4(m[2]), instrument: 'netbanking', referenceId: ref },
       };
     }
   }

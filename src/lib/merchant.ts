@@ -9,6 +9,12 @@
 // Rail prefixes stripped anywhere they appear as a token boundary (§6.2).
 const RAIL_PREFIXES = ['UPI', 'P2M', 'P2A', 'POS', 'NEFT', 'IMPS', 'ACH', 'MMT', 'RTGS', 'NACH'];
 
+// Transfer-narration noise. Account-statement credits arrive as hyphenated
+// narrations like `XXXXXXXXXX6069-TPT-SALARY SAHIL SAJJAN-SK`, where the only
+// part worth showing is the person's name; these tokens are the scaffolding
+// around it. (TPT = third-party transfer, FT = funds transfer.)
+const NARRATION_NOISE = ['TPT', 'TRF', 'FT', 'PMT', 'TXN', 'REF'];
+
 // Trailing location/country tokens (§6.3). Extend as new cities appear.
 const CITY_TOKENS = new Set([
   'BANGALORE', 'BENGALURU', 'MUMBAI', 'DELHI', 'NEW DELHI', 'GURGAON', 'GURUGRAM',
@@ -51,11 +57,13 @@ export function normalizeMerchant(raw: string): string {
   // 5. Strip everything after * or @ where it looks like an order ref / VPA suffix.
   s = s.replace(/[*@][A-Z0-9._-]+/g, ' ');
 
-  // Tokenize on rail separators and whitespace.
-  let tokens = s.split(/[\/\s]+/).filter(Boolean);
+  // Tokenize on rail separators and whitespace. Hyphens count: bank credit
+  // narrations are hyphen-delimited, and without splitting on them the whole
+  // `XXXXXXXXXX6069-TPT-SALARY` ran together as one unrecognizable token.
+  let tokens = s.split(/[\/\s-]+/).filter(Boolean);
 
-  // 2. Strip rail prefixes wherever they appear.
-  tokens = tokens.filter((t) => !RAIL_PREFIXES.includes(t));
+  // 2. Strip rail prefixes and narration scaffolding wherever they appear.
+  tokens = tokens.filter((t) => !RAIL_PREFIXES.includes(t) && !NARRATION_NOISE.includes(t));
 
   // 4. Strip pure digit runs of length >= 4 (order/reference numbers), and
   //    masked-card tokens like 4471XXXX.
@@ -81,6 +89,14 @@ export function normalizeMerchant(raw: string): string {
     } else {
       break;
     }
+  }
+
+  // Drop a trailing 1-2 letter bank/branch code — but ONLY when it was
+  // hyphen-attached in the source ("...SAHIL SAJJAN-SK"). Plenty of Indian
+  // names legitimately end in a space-separated initial ("NEETHA H M",
+  // "SUNIL V"), and an unconditional rule silently truncated those.
+  if (tokens.length > 1 && /-\s*[A-Z]{1,2}$/.test(raw.toUpperCase().trim())) {
+    if (/^[A-Z]{1,2}$/.test(tokens[tokens.length - 1])) tokens.pop();
   }
 
   // 6. Collapse punctuation to spaces, collapse whitespace, trim.
