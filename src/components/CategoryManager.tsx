@@ -1,6 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Icon from './Icon';
+import Select from './Select';
+import { categoryStyle } from '@/lib/palette';
 
 interface Sub { id: number; name: string }
 interface Cat { id: number; name: string; isExpense: boolean; subcategories: Sub[] }
@@ -67,7 +70,7 @@ export default function CategoryManager() {
           <input value={newName} onChange={(e) => setNewName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTop()} placeholder="e.g. Health" className="input" />
         </div>
         <label className="flex items-center gap-1.5 text-sm text-muted pb-2">
-          <input type="checkbox" checked={newIsExpense} onChange={(e) => setNewIsExpense(e.target.checked)} /> Counts as spend
+          <input type="checkbox" checked={newIsExpense} onChange={(e) => setNewIsExpense(e.target.checked)} /> Money going out (an expense)
         </label>
         <button onClick={addTop} disabled={busy} className="btn-primary h-[38px]">Add</button>
       </div>
@@ -76,10 +79,15 @@ export default function CategoryManager() {
       <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2 items-end border-t border-border pt-4">
         <div>
           <label className="block text-xs text-muted mb-1">Subcategory of</label>
-          <select value={subParent} onChange={(e) => setSubParent(e.target.value)} className="input">
-            <option value="">— Category —</option>
-            {cats.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-          </select>
+          <Select
+            value={subParent}
+            onChange={setSubParent}
+            placeholder="Pick a category"
+            options={cats.map((c) => {
+              const st = categoryStyle(c.name, c.isExpense);
+              return { value: String(c.id), label: c.name, icon: st.icon, tone: st.solid, hint: c.isExpense ? undefined : 'Income' };
+            })}
+          />
         </div>
         <div>
           <label className="block text-xs text-muted mb-1">New subcategory</label>
@@ -95,7 +103,14 @@ export default function CategoryManager() {
         {cats.map((c) => (
           <div key={c.id} className="rounded-lg bg-surface-2 p-3">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{c.name}{!c.isExpense && <span className="ml-1.5 text-[10px] text-muted">(not spend)</span>}</span>
+              <span className="flex items-center gap-2 text-sm font-bold">
+                {c.name}
+                {!c.isExpense && (
+                  <span className="badge" style={{ ['--tone-soft']: '#E2F1EA', ['--tone-ink']: '#1E6349' } as React.CSSProperties}>
+                    <Icon name="income" size={10} /> Income
+                  </span>
+                )}
+              </span>
               <button onClick={() => remove(c.id, c.name)} className="text-xs text-muted hover:text-debit">Delete</button>
             </div>
             {c.subcategories.length > 0 && (

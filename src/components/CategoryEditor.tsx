@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useCategories } from '@/lib/useCategories';
+import { CategoryDropdown } from './Select';
 
 interface Props {
   txnId: number;
@@ -58,38 +59,12 @@ export default function CategoryEditor({ txnId, merchant, currentCategoryId, cur
         Merchant: <span className="font-mono text-text">{merchant}</span>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <select
-          className="w-full rounded-md border border-border bg-surface px-2 py-2 text-sm"
-          value={categoryId ?? ''}
-          onChange={(e) => {
-            setCategoryId(e.target.value ? Number(e.target.value) : null);
-            setSubcategoryId(null);
-          }}
-        >
-          <option value="">— Category —</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.isExpense ? '' : ' (not spend)'}
-            </option>
-          ))}
-        </select>
-
-        <select
-          className="w-full rounded-md border border-border bg-surface px-2 py-2 text-sm disabled:opacity-50"
-          value={subcategoryId ?? ''}
-          onChange={(e) => setSubcategoryId(e.target.value ? Number(e.target.value) : null)}
-          disabled={subs.length === 0}
-        >
-          <option value="">— Subcategory (optional) —</option>
-          {subs.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <CategoryDropdown
+        categories={categories}
+        value={{ categoryId, subcategoryId }}
+        onChange={(v) => { setCategoryId(v.categoryId); setSubcategoryId(v.subcategoryId); }}
+        placeholder="Pick a category"
+      />
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
         <label className="flex items-center gap-1.5 cursor-pointer">

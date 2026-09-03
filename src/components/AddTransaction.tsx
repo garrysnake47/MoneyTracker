@@ -2,13 +2,27 @@
 
 import { useMemo, useState } from 'react';
 import { useCategories } from '@/lib/useCategories';
+import { CategoryDropdown } from './Select';
+
+/** Today's date and the current time, in the browser's own timezone. */
+function localNow() {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, '0');
+  return {
+    date: `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`,
+    time: `${p(d.getHours())}:${p(d.getMinutes())}`,
+  };
+}
 
 /** Manual income/expense entry form (spec: user enters income manually). */
 export default function AddTransaction({ onAdded, onClose }: { onAdded: () => void; onClose: () => void }) {
   const categories = useCategories();
   const [direction, setDirection] = useState<'debit' | 'credit'>('debit');
   const [amount, setAmount] = useState('');
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // Local, not UTC: toISOString() would roll the date over for anyone whose
+  // offset puts them on a different calendar day than UTC right now.
+  const [date, setDate] = useState(() => localNow().date);
+  const [time, setTime] = useState(() => localNow().time);
   const [description, setDescription] = useState('');
   const [categoryId, setCategoryId] = useState('');
   const [subcategoryId, setSubcategoryId] = useState('');
@@ -32,7 +46,7 @@ export default function AddTransaction({ onAdded, onClose }: { onAdded: () => vo
         body: JSON.stringify({
           direction,
           amount: Number(amount),
-          occurredAt: new Date(date + 'T12:00:00').toISOString(),
+          occurredAt: new Date(`${date}T${time || '00:00'}`).toISOString(),
           description: description.trim(),
           categoryId: categoryId || null,
           subcategoryId: subcategoryId || null,
@@ -67,14 +81,19 @@ export default function AddTransaction({ onAdded, onClose }: { onAdded: () => vo
           </button>
         </div>
 
+        <div>
+          <label className="block text-xs text-muted mb-1">Amount (₹)</label>
+          <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" autoFocus className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm tabular" />
+        </div>
+
         <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs text-muted mb-1">Amount (₹)</label>
-            <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" autoFocus className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm tabular" />
-          </div>
           <div>
             <label className="block text-xs text-muted mb-1">Date</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm" />
+          </div>
+          <div>
+            <label className="block text-xs text-muted mb-1">Time</label>
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm" />
           </div>
         </div>
 
@@ -83,25 +102,17 @@ export default function AddTransaction({ onAdded, onClose }: { onAdded: () => vo
           <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={direction === 'credit' ? 'e.g. Freelance payment' : 'e.g. Groceries'} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
-            <label className="block text-xs text-muted mb-1">Category</label>
-            <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(''); }} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm">
-              <option value="">— none —</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs text-muted mb-1">Subcategory</label>
-            <select value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} disabled={subs.length === 0} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm disabled:opacity-50">
-              <option value="">— none —</option>
-              {subs.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block text-xs text-muted mb-1">Category</label>
+          <CategoryDropdown
+            categories={categories}
+            value={{ categoryId: categoryId ? Number(categoryId) : null, subcategoryId: subcategoryId ? Number(subcategoryId) : null }}
+            onChange={(v) => {
+              setCategoryId(v.categoryId ? String(v.categoryId) : '');
+              setSubcategoryId(v.subcategoryId ? String(v.subcategoryId) : '');
+            }}
+            placeholder="Pick a category"
+          />
         </div>
 
         {error && <div className="text-xs text-debit">{error}</div>}

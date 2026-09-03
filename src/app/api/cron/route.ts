@@ -4,7 +4,6 @@ import { syncGmail } from '@/lib/gmail';
 import { runParsePass } from '@/lib/parsePass';
 import { runCategorizer } from '@/lib/categorize';
 import { detectSubscriptions } from '@/lib/subscriptions';
-import { ensureSalaryCredit } from '@/lib/salary';
 
 export const runtime = 'nodejs';
 // 60s is the Hobby-plan ceiling. Incremental syncs finish well within this;
@@ -30,12 +29,11 @@ export async function GET(req: NextRequest) {
 
   for (const { id: userId } of users) {
     try {
-      const salary = await ensureSalaryCredit(userId);
       const sync = await syncGmail(userId).catch((e) => ({ error: e instanceof Error ? e.message : String(e) }));
       const parse = await runParsePass(userId);
       const categorize = await runCategorizer(userId);
       const subscriptions = await detectSubscriptions(userId);
-      results[userId] = { salary, sync, parse, categorize, subscriptions };
+      results[userId] = { sync, parse, categorize, subscriptions };
     } catch (err) {
       results[userId] = { error: err instanceof Error ? err.message : String(err) };
     }

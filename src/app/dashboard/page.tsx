@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { inr } from '@/lib/format';
 import SyncButton from '@/components/SyncButton';
 import Icon from '@/components/Icon';
+import Select from '@/components/Select';
 import Reveal from '@/components/Reveal';
 import CategoryPie from '@/components/CategoryPie';
 import CategoryWeekChart, { type WeeklyCategorySpend } from '@/components/CategoryWeekChart';
@@ -73,23 +74,26 @@ export default function OverviewPage() {
     refresh(month);
   }, [month, refresh]);
 
-  // Card charges are spend but haven't left the account yet, so the balance
-  // view nets money in against account outflow only.
-  const net = data ? data.totalMoneyIn - data.accountOutflow : 0;
+  // Card charges are spend but haven't left the account yet, so what's left in
+  // the account nets money in against account outflow only — never against
+  // totalSpend, which includes charges still sitting on the card.
+  const leftInAccount = data ? data.totalMoneyIn - data.accountOutflow : 0;
 
   return (
     <div className="space-y-5 pt-1">
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <header className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Overview</h1>
           <p className="text-sm text-muted">Spend excludes transfers, EMIs counted, card bills netted out. Credit-card charges count as spend but not as account outflow.</p>
         </div>
         <div className="flex items-center gap-3">
-          <select value={month} onChange={(e) => setMonth(e.target.value)} className="select w-auto rounded-full">
-            {months.map((m) => (
-              <option key={m} value={m}>{monthLabel(m)}</option>
-            ))}
-          </select>
+          <Select
+            value={month}
+            options={months.map((m) => ({ value: m, label: monthLabel(m), icon: 'calendar' }))}
+            onChange={setMonth}
+            align="right"
+            className="!w-auto min-w-[11rem] rounded-full"
+          />
           <SyncButton onDone={() => refresh(month)} />
         </div>
       </header>
@@ -100,19 +104,28 @@ export default function OverviewPage() {
         <>
           {/* KPI tiles — each a distinct color */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {/* Total spend counts card charges too — say so, since the card
+                tile beside it repeats part of this number. */}
             <KpiCard label="Total spend" value={inr(data.totalSpend)} icon="wallet" tone="ink" delay={0}>
-              {data.deltaPct != null && (
-                <span>{data.deltaPct > 0 ? '▲' : '▼'} {Math.abs(data.deltaPct)}% vs last month</span>
-              )}
+              <span>
+                {data.creditCardSpend > 0 ? `incl. ${inr(data.creditCardSpend)} on card` : 'card + account'}
+                {data.deltaPct != null && ` · ${data.deltaPct > 0 ? '▲' : '▼'} ${Math.abs(data.deltaPct)}% vs last month`}
+              </span>
             </KpiCard>
             <KpiCard label="Money in" value={inr(data.totalMoneyIn)} icon="income" tone="mint" delay={70}>
-              <span>credited to your account</span>
+              <span>all income credited to your account</span>
             </KpiCard>
-            <KpiCard label="Net saved" value={inr(net)} icon="piggy" tone={net >= 0 ? 'sand' : 'blush'} delay={140}>
-              <span>{net >= 0 ? 'surplus' : 'deficit'} · in − out of account</span>
+            <KpiCard
+              label="Balance remaining"
+              value={inr(leftInAccount)}
+              icon="piggy"
+              tone={leftInAccount >= 0 ? 'sand' : 'blush'}
+              delay={140}
+            >
+              <span>money in − money out of account</span>
             </KpiCard>
-            <KpiCard label="Credit card" value={inr(data.creditCardSpend)} icon="creditcard" tone="sky" delay={210}>
-              <a href="/credit-card" className="underline decoration-current/40">not deducted from balance →</a>
+            <KpiCard label="Credit card used" value={inr(data.creditCardSpend)} icon="creditcard" tone="sky" delay={210}>
+              <a href="/credit-card" className="underline decoration-current/40">charged this month, not yet paid →</a>
             </KpiCard>
           </div>
 
@@ -136,7 +149,7 @@ export default function OverviewPage() {
             <section className="card lift p-5 flex flex-col">
               <h2 className="text-[15px] font-bold mb-3">Savings health</h2>
               <div className="flex-1 flex items-center justify-center">
-                <HealthGauge income={data.totalMoneyIn} spend={data.totalSpend} />
+                <HealthGauge income={data.totalMoneyIn} spend={data.accountOutflow} />
               </div>
             </section>
           </Reveal>
@@ -152,7 +165,7 @@ export default function OverviewPage() {
                   ))}
                 </div>
               </div>
-              <CategoryPie items={pieView === 'expense' ? data.categoryBreakdown : data.incomeBreakdown} />
+              <CategoryPie items={pieView === 'expense' ? data.categoryBreakdown : data.incomeBreakdown} variant={pieView} />
             </section>
             <RecentTransactions month={month} />
           </Reveal>

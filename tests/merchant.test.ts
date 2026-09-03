@@ -22,4 +22,30 @@ describe('merchant normalization (§6)', () => {
   it('does not treat a merchant-with-VPA as a person transfer', () => {
     expect(looksLikeVpa('SWIGGY*ORDER/swiggy@ybl')).toBe(false);
   });
+
+  it('surfaces the sender from a hyphenated transfer narration', () => {
+    // Account-statement credit: the only useful part is the person's name.
+    const out = normalizeMerchant('XXXXXXXXXX6069-TPT-SALARY SAHIL SAJJAN-SK');
+    expect(out).toContain('SAHIL SAJJAN');
+    expect(out).not.toContain('TPT');
+    expect(out).not.toContain('6069');
+    expect(out).not.toMatch(/\bSK\b/);
+  });
+
+  it('keeps a trailing initial that is part of the name', () => {
+    // Space-separated initials are name parts, not bank codes.
+    expect(normalizeMerchant('NEETHA H M')).toBe('NEETHA H M');
+    expect(normalizeMerchant('SUNIL V')).toBe('SUNIL V');
+  });
+
+  it('drops a hyphen-attached rail code even when spaced out', () => {
+    // Real HDFC narration: "FT- <name>-<masked acct> - UP".
+    expect(normalizeMerchant('FT- Sahil Sajjan Tari-XXXXXXXXXX9849 - UP')).toBe('SAHIL SAJJAN TARI');
+  });
+
+  it('keeps the payer name out of an IMPS narration', () => {
+    const out = normalizeMerchant('IMPS-503412345678-PRIYA SHARMA-HDFC');
+    expect(out).toContain('PRIYA SHARMA');
+    expect(out).not.toContain('503412345678');
+  });
 });

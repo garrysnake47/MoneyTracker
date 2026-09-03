@@ -4,7 +4,6 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { fmtDateTime } from '@/lib/format';
 import CredentialsForm from '@/components/CredentialsForm';
-import SalaryForm from '@/components/SalaryForm';
 import CategoryManager from '@/components/CategoryManager';
 
 interface Status {
@@ -73,9 +72,6 @@ function SettingsInner() {
 
       {/* Credentials entered via UI (no .env needed) */}
       <CredentialsForm onSaved={load} />
-
-      {/* Auto salary */}
-      <SalaryForm />
 
       {/* Category management */}
       <CategoryManager />

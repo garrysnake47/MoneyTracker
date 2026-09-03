@@ -2,12 +2,16 @@
 
 import { useEffect, useRef } from 'react';
 
-const HOUR = 60 * 60 * 1000;
+// Twice a day is plenty: bank alerts are read from Gmail, which keeps them
+// until we fetch them, so a longer gap costs nothing but far fewer wake-ups on
+// a scale-to-zero Postgres (each sync wakes the database for ~5 minutes).
+const SYNC_INTERVAL = 12 * 60 * 60 * 1000;
 const KEY = 'mt_last_autosync';
 
 /**
- * Background auto-sync: triggers /api/sync at most once per hour while the app is
- * open (on load if it's been >1h, then hourly). Silent — errors are ignored.
+ * Background auto-sync: triggers /api/sync at most once every 12 hours while the
+ * app is open (on load if it's been >12h, then every 12h). Silent — errors are
+ * ignored. The daily 2am cron (vercel.json) covers the app being closed.
  */
 export default function AutoSync() {
   const running = useRef(false);
@@ -21,7 +25,7 @@ export default function AutoSync() {
       } catch {
         /* ignore */
       }
-      if (!force && Date.now() - last < HOUR) return;
+      if (!force && Date.now() - last < SYNC_INTERVAL) return;
       running.current = true;
       try {
         const res = await fetch('/api/sync', { method: 'POST' });
@@ -41,9 +45,9 @@ export default function AutoSync() {
       }
     }
 
-    // On load (only if stale), then hourly.
+    // On load (only if stale), then every 12 hours.
     maybeSync(false);
-    const id = setInterval(() => maybeSync(true), HOUR);
+    const id = setInterval(() => maybeSync(true), SYNC_INTERVAL);
     return () => clearInterval(id);
   }, []);
 

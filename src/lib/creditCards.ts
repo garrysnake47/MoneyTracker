@@ -26,7 +26,21 @@ export async function listCreditCards(userId: number): Promise<CreditCardRow[]> 
     _count: { _all: true },
   });
   const byLast4 = new Map(counts.map((c) => [c.accountLast4 ?? '', c._count._all]));
-  return cards.map((c) => ({ id: c.id, last4: c.last4, label: c.label, txnCount: byLast4.get(c.last4) ?? 0 }));
+
+  // A transaction flagged by hand ("Charged to a credit card" on the edit
+  // panel) or parsed from an alert that never quoted a card number has no
+  // accountLast4, so grouping by last-4 dropped it into a bucket no card
+  // matched — the card showed "0 transactions" while the charge sat in the
+  // month's total. With exactly one card registered the attribution is
+  // unambiguous, so fold those in; with several we can't guess, and the page
+  // surfaces them as an unassigned row instead.
+  const unattributed = byLast4.get('') ?? 0;
+  return cards.map((c) => ({
+    id: c.id,
+    last4: c.last4,
+    label: c.label,
+    txnCount: (byLast4.get(c.last4) ?? 0) + (cards.length === 1 ? unattributed : 0),
+  }));
 }
 
 /**

@@ -46,19 +46,25 @@ async function expenseFlagMap(): Promise<Map<number, boolean>> {
 }
 
 /**
- * Category ids under "Transfers" (the top-level row and its children).
+ * Category ids for transfers that are your OWN money moving between your own
+ * accounts — currently "Transfers › To self".
  *
  * Transfers are is_expense = false, which already keeps outgoing transfers out
- * of spend — but income shares that flag, so a credit needs this set to tell
- * "money you earned" from "money you moved between your own accounts".
+ * of spend, but income shares that flag, so a credit needs this set to tell
+ * "money that arrived" from "money you shuffled".
+ *
+ * Only the self-transfer child qualifies. Excluding the whole Transfers tree
+ * also dropped "To self" siblings like "To people" — so ₹100 actually sent to
+ * you by another person vanished from Money in and from the income donut, even
+ * though it really did land in the account.
  */
-async function transferCategoryIds(): Promise<Set<number>> {
+async function selfTransferCategoryIds(): Promise<Set<number>> {
   const root = await prisma.category.findFirst({
     where: { name: 'Transfers', parentId: null },
-    select: { id: true, children: { select: { id: true } } },
+    select: { id: true, children: { select: { id: true, name: true } } },
   });
   if (!root) return new Set();
-  return new Set([root.id, ...root.children.map((c) => c.id)]);
+  return new Set(root.children.filter((c) => /to self/i.test(c.name)).map((c) => c.id));
 }
 
 export function currentMonth(): string {
@@ -232,7 +238,7 @@ export async function getWeeklyCategorySpend(userId: number, month: string): Pro
 
 export async function getMonthlyOverview(userId: number, month: string): Promise<MonthlyOverview> {
   const flags = await expenseFlagMap();
-  const transferIds = await transferCategoryIds();
+  const selfTransferIds = await selfTransferCategoryIds();
   const { start, end } = monthBounds(month);
 
   const prev = new Date(start);
@@ -262,8 +268,8 @@ export async function getMonthlyOverview(userId: number, month: string): Promise
       // refund/reversal against the card, not income; a credit categorised as a
       // Transfer is your own money arriving from your own account, not income.
       const isTransferIn =
-        (t.subcategoryId != null && transferIds.has(t.subcategoryId)) ||
-        (t.categoryId != null && transferIds.has(t.categoryId));
+        (t.subcategoryId != null && selfTransferIds.has(t.subcategoryId)) ||
+        (t.categoryId != null && selfTransferIds.has(t.categoryId));
       if (!t.isCreditCard && !isTransferIn) {
         totalMoneyIn += amt;
         // Income breakdown: by category when set, else by label (e.g. "Salary").

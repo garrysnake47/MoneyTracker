@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { inr, fmtDateTime } from '@/lib/format';
-import { PALETTE } from '@/lib/palette';
 import { useCategories } from '@/lib/useCategories';
 import CategoryEditor from '@/components/CategoryEditor';
+import CategoryPicker from '@/components/CategoryPicker';
+import Select, { monthOpts } from '@/components/Select';
+import Icon from '@/components/Icon';
 
 interface Txn {
   id: number;
@@ -33,9 +35,19 @@ export default function ReviewPage() {
   // direction by default — a credit is almost always income.
   const [side, setSide] = useState<'expense' | 'income'>('expense');
 
-  const load = useCallback(async () => {
+  // The queue is scoped to ONE month. Unscoped, it dragged every uncategorized
+  // transaction ever synced into the queue, so a fresh month opened on a
+  // backlog from months already dealt with.
+  const months = useMemo(() => monthOpts(12), []);
+  const [month, setMonth] = useState(months[0].value);
+
+  const load = useCallback(async (m: string) => {
     setLoading(true);
-    const res = await fetch('/api/transactions?reviewQueue=1&pageSize=100');
+    const [y, mo] = m.split('-').map(Number);
+    const last = new Date(y, mo, 0).getDate();
+    const res = await fetch(
+      `/api/transactions?reviewQueue=1&pageSize=200&from=${m}-01&to=${m}-${String(last).padStart(2, '0')}`,
+    );
     const data = await res.json();
     setQueue(data.items);
     setTotal(data.items.length);
@@ -44,8 +56,8 @@ export default function ReviewPage() {
   }, []);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    load(month);
+  }, [load, month]);
 
   const current = queue[idx];
 
@@ -110,12 +122,21 @@ export default function ReviewPage() {
 
   return (
     <div className="space-y-4">
-      <header className="flex items-center justify-between animate-fade-up">
+      <header className="relative z-30 flex items-center justify-between animate-fade-up">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Review queue</h1>
-          <p className="text-sm text-muted">{remaining} left · one keystroke per decision</p>
+          <p className="text-sm text-muted">{remaining} left this month · one keystroke per decision</p>
         </div>
-        <button onClick={load} className="btn-outline px-3 py-1.5">Refresh</button>
+        <div className="flex items-center gap-2">
+          <Select
+            value={month}
+            options={months}
+            onChange={setMonth}
+            align="right"
+            className="!w-auto min-w-[11rem] rounded-full"
+          />
+          <button onClick={() => load(month)} className="btn-outline px-3 py-1.5">Refresh</button>
+        </div>
       </header>
 
       {/* Progress */}
@@ -134,7 +155,7 @@ export default function ReviewPage() {
         <div className="card p-10 text-center animate-pop">
           <div className="text-5xl mb-3">🎉</div>
           <div className="font-semibold text-lg">All caught up</div>
-          <div className="text-sm text-muted mt-1">Everything is categorized.</div>
+          <div className="mt-1 text-sm text-muted">Everything in this month is categorized.</div>
         </div>
       ) : (
         <>
@@ -170,29 +191,6 @@ export default function ReviewPage() {
               onDone={() => { setEditing(false); setIdx((i) => i + 1); }}
               onCancel={() => setEditing(false)}
             />
-          ) : pendingCat != null ? (
-            (() => {
-              const cat = categories.find((c) => c.id === pendingCat);
-              if (!cat) return null;
-              return (
-                <div className="space-y-3">
-                  <div className="text-sm text-muted">
-                    Pick a subcategory for <span className="font-medium text-text">{cat.name}</span>, or save without one:
-                  </div>
-                  <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-                    {cat.subcategories.map((s) => (
-                      <button key={s.id} onClick={() => assign(cat.id, s.id)} className="rounded-2xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-accent">
-                        {s.name}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex gap-2 text-sm">
-                    <button onClick={() => assign(cat.id)} className="btn-primary px-3 py-1.5">Just “{cat.name}”</button>
-                    <button onClick={() => setPendingCat(null)} className="btn-ghost">← Back</button>
-                  </div>
-                </div>
-              );
-            })()
           ) : (
             <>
               {/* Expense / Income sides of the taxonomy */}
@@ -209,35 +207,43 @@ export default function ReviewPage() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {visible.map((c, i) => {
-                  const color = PALETTE[i % PALETTE.length];
-                  const hasSubs = c.subcategories.length > 0;
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => (hasSubs ? setPendingCat(c.id) : assign(c.id))}
-                      className="group flex items-center gap-2.5 rounded-2xl border border-border bg-surface px-3.5 py-3.5 text-sm text-left transition-all hover:-translate-y-0.5 hover:shadow-card hover:border-transparent"
-                      style={{ ['--c' as string]: color }}
-                    >
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-xs font-semibold text-white" style={{ background: color }}>{i < 9 ? i + 1 : '·'}</span>
-                      <span className="truncate font-medium flex-1">{c.name}</span>
-                      {hasSubs && <span className="text-muted text-xs">›</span>}
-                    </button>
-                  );
-                })}
-              </div>
-              {visible.length === 0 && (
-                <p className="text-sm text-muted">
-                  No {side} categories yet — add them under <a href="/settings" className="underline">Settings</a>.
+              {/* Categories AND their subcategories, all in view. Clicking a
+                  category files it as-is; clicking a subcategory chip files it
+                  one level deeper — no second screen, no popup. */}
+              <CategoryPicker
+                categories={categories}
+                side={side}
+                numbered
+                value={{ categoryId: pendingCat, subcategoryId: null }}
+                onChange={(p) => p.categoryId != null && assign(p.categoryId, p.subcategoryId)}
+                columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              />
+
+              {pendingCat != null && (
+                <p className="text-xs font-semibold text-muted">
+                  Pick a subcategory with 1–9, press Enter to file under the category alone, or Esc to back out.
                 </p>
               )}
-              <div className="flex gap-2 text-sm">
-                <button onClick={() => setEditing(true)} className="btn-outline px-3 py-1.5">
-                  <kbd className="mr-1 rounded bg-surface-2 px-1 text-xs">e</kbd> One-off (this txn only)
+
+              {/* What a click here actually does was never stated: it writes a
+                  rule, so every future “{merchant}” lands in the same place. */}
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted">
+                <Icon name="sparkle" size={13} className="shrink-0" />
+                Choosing a category also files <span className="font-bold text-text">{current.merchant}</span> here
+                automatically from now on.
+              </p>
+
+              <div className="flex flex-wrap gap-2 text-sm">
+                <button
+                  onClick={() => setEditing(true)}
+                  className="btn-outline gap-1.5 px-3 py-1.5"
+                  title="Categorise this single transaction without creating a rule for the merchant"
+                >
+                  <kbd className="rounded bg-surface-2 px-1 text-xs">e</kbd>
+                  <Icon name="edit" size={13} /> Just this one — don’t remember
                 </button>
-                <button onClick={skip} className="btn-ghost">
-                  <kbd className="mr-1 rounded bg-surface-2 px-1 text-xs">s</kbd> Skip
+                <button onClick={skip} className="btn-ghost gap-1.5">
+                  <kbd className="rounded bg-surface-2 px-1 text-xs">s</kbd> Skip
                 </button>
               </div>
             </>

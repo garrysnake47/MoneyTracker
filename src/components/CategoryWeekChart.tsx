@@ -3,7 +3,8 @@
 import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 import { inr, inrCompact } from '@/lib/format';
 import { useWidth } from '@/lib/useWidth';
-import { PALETTE } from '@/lib/palette';
+import Icon from './Icon';
+import { categoryStyle } from '@/lib/palette';
 
 export interface CategoryWeek {
   label: string;
@@ -51,9 +52,14 @@ export default function CategoryWeekChart({ data }: { data: WeeklyCategorySpend 
   const height = 300;
   const { weeks, categories } = data;
 
+  // Keyed by category NAME (not by index) so a category is the same colour
+  // here as on the spend-by-category donut. These are always expense-side.
   const colors: Record<string, string> = {};
-  categories.forEach((c, i) => {
-    colors[c] = PALETTE[i % PALETTE.length];
+  const icons: Record<string, string> = {};
+  categories.forEach((c) => {
+    const st = categoryStyle(c, true);
+    colors[c] = st.solid;
+    icons[c] = st.icon;
   });
 
   const empty = weeks.every((w) => Number(w.total) === 0);
@@ -104,8 +110,14 @@ export default function CategoryWeekChart({ data }: { data: WeeklyCategorySpend 
       {!empty && (
         <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5">
           {categories.map((name) => (
-            <span key={name} className="inline-flex items-center gap-1.5 text-xs font-medium text-muted">
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: colors[name] }} />
+            <span
+              key={name}
+              className="inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold"
+              style={{ background: `${colors[name]}14`, color: categoryStyle(name, true).ink }}
+            >
+              <span className="grid h-4 w-4 place-items-center rounded-full text-white" style={{ background: colors[name] }}>
+                <Icon name={icons[name]} size={10} />
+              </span>
               {name}
             </span>
           ))}

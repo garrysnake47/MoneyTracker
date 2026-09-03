@@ -69,6 +69,27 @@ export const hdfcFixtures: Fixture[] = [
     expect: { status: 'parsed', amount: 75417, direction: 'credit', rawMerchantIncludes: 'ACME', instrument: 'netbanking', last4: '5427' },
   },
   {
+    // IMPS from a person — the payer sits inside the rail's narration.
+    name: 'IMPS credit names the sender',
+    email: {
+      ...base,
+      subject: 'Amount credited to your account',
+      bodyText:
+        'Dear Customer, Rs.5,000.00 is credited to your account ending 5427 on 28-08-26. Info: IMPS-503412345678-PRIYA SHARMA-HDFC-XXXXXX-Payment.',
+    },
+    expect: { status: 'parsed', amount: 5000, direction: 'credit', rawMerchantIncludes: 'PRIYA SHARMA', instrument: 'netbanking', last4: '5427' },
+  },
+  {
+    name: 'Credit names the sender via "received from"',
+    email: {
+      ...base,
+      subject: 'Amount credited to your account',
+      bodyText:
+        'Dear Customer, INR 1,200.00 has been credited to your HDFC Bank account ending 5427. Received from RAHUL VERMA on 28-08-26.',
+    },
+    expect: { status: 'parsed', amount: 1200, direction: 'credit', rawMerchantIncludes: 'RAHUL VERMA', instrument: 'netbanking', last4: '5427' },
+  },
+  {
     name: 'OTP is ignored',
     email: {
       ...base,

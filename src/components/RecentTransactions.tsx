@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { inr, fmtDate } from '@/lib/format';
+import Icon from './Icon';
+import { categoryStyle } from '@/lib/palette';
 
 interface Txn {
   id: number;
@@ -51,23 +53,34 @@ export default function RecentTransactions({ month }: { month: string }) {
         <div className="text-sm text-muted">Nothing this month yet.</div>
       ) : (
         <ul className="divide-y divide-border">
-          {items.map((t) => (
-            <li key={t.id} className="flex items-center gap-3 py-2.5">
-              <div className={`h-9 w-9 shrink-0 rounded-full grid place-items-center text-sm ${t.direction === 'debit' ? 'bg-debit/10 text-debit' : 'bg-credit/10 text-credit'}`}>
-                {t.direction === 'debit' ? '↓' : '↑'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium truncate">{t.label}</div>
-                <div className="text-xs text-muted">
-                  {fmtDate(t.occurredAt)} · {t.categoryName ?? 'Uncategorized'}
+          {items.map((t) => {
+            // The category's own glyph and colour, matching the transactions
+            // list and the charts — the bare ↑/↓ arrows said nothing about
+            // what the money was for.
+            const st = categoryStyle(t.categoryName, t.direction === 'debit');
+            return (
+              <li key={t.id} className="flex items-center gap-3 py-2.5">
+                <span
+                  className="tile h-9 w-9 shrink-0 rounded-xl text-white"
+                  style={{ background: t.categoryName ? st.solid : 'rgb(var(--muted-soft))' }}
+                >
+                  <Icon name={t.categoryName ? st.icon : 'other'} size={16} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-bold">{t.label}</div>
+                  <div className="mt-0.5 flex items-center gap-1.5 text-xs font-semibold text-muted">
+                    <span>{fmtDate(t.occurredAt)}</span>
+                    <span className="text-muted-soft">·</span>
+                    <span style={t.categoryName ? { color: st.ink } : undefined}>{t.categoryName ?? 'Uncategorized'}</span>
+                  </div>
                 </div>
-              </div>
-              <div className={`text-sm font-semibold tabular ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
-                {t.direction === 'debit' ? '−' : '+'}
-                {inr(t.amount)}
-              </div>
-            </li>
-          ))}
+                <div className={`text-sm font-extrabold tabular ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
+                  {t.direction === 'debit' ? '−' : '+'}
+                  {inr(t.amount)}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

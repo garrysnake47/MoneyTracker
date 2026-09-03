@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useCategories } from '@/lib/useCategories';
-import { PALETTE } from '@/lib/palette';
+import { categoryStyle, categoryBlurb, categoryDecor } from '@/lib/palette';
+import { CategoryDropdown, type CategoryValue as Picked } from '@/components/Select';
+import Icon from '@/components/Icon';
 
 interface Rule {
   id: number;
@@ -16,9 +18,6 @@ interface Rule {
   hitCount: number;
 }
 
-// Category accent colors (match the dashboard palette).
-
-
 /**
  * Keyword rules: map a keyword to a category. Any transaction whose merchant
  * contains the keyword is filed there automatically — existing and future.
@@ -27,9 +26,8 @@ export default function KeywordsPage() {
   const categories = useCategories();
   const [rules, setRules] = useState<Rule[]>([]);
   const [keyword, setKeyword] = useState('');
-  const [categoryId, setCategoryId] = useState('');
-  const [subcategoryId, setSubcategoryId] = useState('');
-  const [msg, setMsg] = useState<string | null>(null);
+  const [picked, setPicked] = useState<Picked>({ categoryId: null, subcategoryId: null });
+  const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
@@ -40,18 +38,9 @@ export default function KeywordsPage() {
     load();
   }, [load]);
 
-  const subs = useMemo(() => categories.find((c) => c.id === Number(categoryId))?.subcategories ?? [], [categories, categoryId]);
-
-  // color per category name (stable by seeded order)
-  const colorByCat = useMemo(() => {
-    const m = new Map<string, string>();
-    categories.forEach((c, i) => m.set(c.name, PALETTE[i % PALETTE.length]));
-    return m;
-  }, [categories]);
-
   async function add() {
-    if (!keyword.trim() || !categoryId) {
-      setMsg('Enter a keyword and pick a category.');
+    if (!keyword.trim() || picked.categoryId == null) {
+      setMsg({ text: 'Enter a keyword and pick a category below.', ok: false });
       return;
     }
     setBusy(true);
@@ -60,15 +49,15 @@ export default function KeywordsPage() {
       const res = await fetch('/api/rules', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyword: keyword.trim(), categoryId: Number(categoryId), subcategoryId: subcategoryId || null }),
+        body: JSON.stringify({ keyword: keyword.trim(), categoryId: picked.categoryId, subcategoryId: picked.subcategoryId }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || 'Failed');
-      setMsg(`Added “${keyword.trim()}” — applied to ${d.applied ?? 0} existing transaction(s).`);
+      setMsg({ text: `Added “${keyword.trim()}” — applied to ${d.applied ?? 0} existing transaction(s).`, ok: true });
       setKeyword('');
       await load();
     } catch (e) {
-      setMsg(e instanceof Error ? e.message : 'Failed');
+      setMsg({ text: e instanceof Error ? e.message : 'Failed', ok: false });
     } finally {
       setBusy(false);
     }
@@ -86,10 +75,22 @@ export default function KeywordsPage() {
       if (!m.has(k)) m.set(k, []);
       m.get(k)!.push(r);
     }
-    // order by the taxonomy order
+    // Sort within a category: grouped by subcategory, alphabetical inside each,
+    // and rules with no subcategory last — the list arrived in insertion order,
+    // so a new keyword landed wherever it happened to be created.
+    for (const list of m.values()) {
+      list.sort((a, b) => {
+        const as = a.subcategoryName ?? '\uffff';
+        const bs = b.subcategoryName ?? '\uffff';
+        if (as !== bs) return as.localeCompare(bs);
+        return a.pattern.localeCompare(b.pattern);
+      });
+    }
     const order = categories.map((c) => c.name);
     return Array.from(m.entries()).sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0]));
   }, [rules, categories]);
+
+  const isExpenseOf = (name: string) => categories.find((c) => c.name === name)?.isExpense ?? true;
 
   return (
     <div className="space-y-5">
@@ -97,65 +98,120 @@ export default function KeywordsPage() {
         <h1 className="text-[28px] font-extrabold tracking-tight">Keywords</h1>
         <p className="text-sm text-muted mt-1">
           Map keywords to categories. If a transaction’s merchant contains the keyword, it’s filed automatically —
-          e.g. <span className="font-medium text-text">hotel, restaurant, bar</span> → Food.
+          e.g. <span className="font-semibold text-text">hotel, restaurant, bar</span> → Food.
         </p>
       </header>
 
-      {/* Add form */}
-      <section className="card p-5 animate-fade-up" style={{ animationDelay: '60ms' }}>
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_1fr_auto] gap-3 items-end">
-          <div>
-            <label className="block text-xs text-muted mb-1.5">Keyword</label>
-            <input value={keyword} onChange={(e) => setKeyword(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} placeholder="e.g. restaurant" className="input" />
+      {/* Add form — category and subcategory in one dropdown. */}
+      <section className="card animate-fade-up relative z-30 p-5" style={{ animationDelay: '60ms' }}>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Keyword</label>
+            <input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && add()}
+              placeholder="e.g. restaurant"
+              className="input"
+            />
           </div>
-          <div>
-            <label className="block text-xs text-muted mb-1.5">Category</label>
-            <select value={categoryId} onChange={(e) => { setCategoryId(e.target.value); setSubcategoryId(''); }} className="select">
-              <option value="">— Category —</option>
-              {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
+          <div className="flex-1">
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Files into</label>
+            <CategoryDropdown categories={categories} value={picked} onChange={setPicked} placeholder="Pick a category" />
           </div>
-          <div>
-            <label className="block text-xs text-muted mb-1.5">Subcategory (optional)</label>
-            <select value={subcategoryId} onChange={(e) => setSubcategoryId(e.target.value)} disabled={subs.length === 0} className="select disabled:opacity-50">
-              <option value="">— none —</option>
-              {subs.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>))}
-            </select>
-          </div>
-          <button onClick={add} disabled={busy} className="btn-primary h-[38px]">{busy ? 'Adding…' : 'Add keyword'}</button>
+          <button onClick={add} disabled={busy || picked.categoryId == null} className="btn-primary">
+            <Icon name="plus" size={15} /> {busy ? 'Adding…' : 'Add keyword'}
+          </button>
         </div>
-        {msg && <div className="mt-3 text-xs text-credit">{msg}</div>}
+
+        {msg && (
+          <div
+            className={`mt-3 flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold ${
+              msg.ok ? 'bg-mint text-[rgb(var(--credit))]' : 'bg-blush text-[rgb(var(--debit))]'
+            }`}
+          >
+            <Icon name={msg.ok ? 'check' : 'alert'} size={14} /> {msg.text}
+          </div>
+        )}
       </section>
 
       {/* Existing rules grouped by category */}
       <div className="space-y-4">
         {byCategory.map(([cat, list], idx) => {
-          const color = colorByCat.get(cat) ?? PALETTE[0];
+          const isExpense = isExpenseOf(cat);
+          const st = categoryStyle(cat, isExpense);
+          const decor = categoryDecor(cat, isExpense);
           return (
-            <section key={cat} className="card p-4 animate-fade-up" style={{ animationDelay: `${120 + idx * 50}ms` }}>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="h-3 w-3 rounded-full" style={{ background: color }} />
-                <h2 className="text-sm font-semibold">{cat}</h2>
-                <span className="text-xs text-muted">{list.length}</span>
+            <section
+              key={cat}
+              className="card animate-fade-up relative overflow-hidden"
+              style={{ animationDelay: `${120 + idx * 50}ms` }}
+            >
+              {/* Left accent stripe — the category's colour running the card. */}
+              <span className="absolute inset-y-0 left-0 w-1.5" style={{ background: st.solid }} aria-hidden />
+
+              {/* Watermark cluster: the category's own glyphs, faint, sitting
+                  beside the heading rather than behind the chip panel. */}
+              <div
+                className="pointer-events-none absolute right-5 top-2 hidden select-none items-end gap-3 md:flex"
+                style={{ color: st.solid }}
+                aria-hidden
+              >
+                <Icon name={decor[2]} size={44} className="opacity-[0.09]" strokeWidth={1.2} />
+                <Icon name={decor[1]} size={62} className="opacity-[0.11]" strokeWidth={1.1} />
+                <Icon name={decor[0]} size={80} className="opacity-[0.13]" strokeWidth={1} />
               </div>
-              <div className="flex flex-wrap gap-2">
-                {list.map((r) => (
-                  <span
-                    key={r.id}
-                    className="group inline-flex items-center gap-1.5 rounded-full border pl-3 pr-1.5 py-1 text-sm transition-colors hover:border-accent/40"
-                    style={{ background: `${color}0f`, borderColor: `${color}33` }}
-                  >
-                    <span className="font-medium lowercase">{r.pattern}</span>
-                    {r.subcategoryName && <span className="text-muted text-xs">· {r.subcategoryName}</span>}
-                    <button
-                      onClick={() => remove(r.id)}
-                      className="ml-0.5 h-5 w-5 rounded-full grid place-items-center text-muted transition-colors hover:text-white hover:bg-debit"
-                      aria-label={`Remove ${r.pattern}`}
-                    >
-                      ×
-                    </button>
+
+              <div className="relative p-5 pl-6">
+                <div className="flex items-center gap-3">
+                  <span className="tile h-12 w-12 shrink-0 text-white shadow-sm" style={{ background: st.solid }}>
+                    <Icon name={st.icon} size={22} />
                   </span>
-                ))}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-extrabold tracking-tight" style={{ color: st.ink }}>{cat}</h2>
+                      <span
+                        className="rounded-full px-2.5 py-0.5 text-xs font-bold text-white"
+                        style={{ background: st.solid }}
+                      >
+                        {list.length}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-sm font-semibold text-muted">{categoryBlurb(cat)}</p>
+                  </div>
+                </div>
+
+                {/* Chips sit on their own panel so they stay legible over the
+                    tint and the watermark behind the card. */}
+                <div className="mt-4 rounded-2xl bg-surface-2/60 p-3">
+                  <div className="flex flex-wrap gap-2">
+                    {list.map((r) => (
+                      <span
+                        key={r.id}
+                        className="group inline-flex items-center gap-2 rounded-full bg-surface py-1.5 pl-3 pr-1.5 text-sm font-bold transition-all hover:-translate-y-px"
+                        style={{ color: st.ink, boxShadow: `inset 0 0 0 1.5px ${st.solid}33, 0 1px 2px rgb(26 28 31 / 0.05)` }}
+                      >
+                        <Icon name={st.icon} size={13} style={{ color: st.solid }} />
+                        <span className="lowercase">{r.pattern}</span>
+                        {r.subcategoryName && (
+                          <span
+                            className="rounded-full px-2 py-0.5 text-[11px] font-bold"
+                            style={{ background: st.soft, color: st.ink }}
+                          >
+                            {r.subcategoryName}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => remove(r.id)}
+                          className="grid h-5 w-5 place-items-center rounded-full text-muted transition-colors hover:bg-debit hover:text-white"
+                          aria-label={`Remove ${r.pattern}`}
+                        >
+                          <Icon name="close" size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
           );

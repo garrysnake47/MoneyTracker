@@ -14,6 +14,7 @@ const config: Config = {
         border: 'rgb(var(--border) / <alpha-value>)',
         text: 'rgb(var(--text) / <alpha-value>)',
         muted: 'rgb(var(--muted) / <alpha-value>)',
+        'muted-soft': 'rgb(var(--muted-soft) / <alpha-value>)',
         accent: 'rgb(var(--accent) / <alpha-value>)',
         ink: 'rgb(var(--ink) / <alpha-value>)',
         'ink-2': 'rgb(var(--ink-2) / <alpha-value>)',
