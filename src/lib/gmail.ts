@@ -70,6 +70,34 @@ export async function exchangeCode(code: string, userId: number): Promise<void> 
   });
 }
 
+/**
+ * Raised when Google refuses the stored refresh token (`invalid_grant`). Causes:
+ * the OAuth consent screen is still in "Testing" (Google expires those refresh
+ * tokens after 7 days), the user revoked access, the token was issued by a
+ * different client_id than the one now configured, or the password changed.
+ * The only cure is re-consent, so we drop the dead token to bring the
+ * "Connect Gmail" banner back.
+ */
+export class GmailAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GmailAuthError';
+  }
+}
+
+function isInvalidGrant(err: unknown): boolean {
+  const e = err as any;
+  return e?.response?.data?.error === 'invalid_grant' || String(e?.message ?? e).includes('invalid_grant');
+}
+
+/** Drop the dead token and surface an actionable message. */
+async function onInvalidGrant(userId: number): Promise<never> {
+  await prisma.gmailToken
+    .update({ where: { userId }, data: { accessToken: null, refreshToken: null, expiryDate: null } })
+    .catch(() => undefined);
+  throw new GmailAuthError('Gmail authorization expired or was revoked — reconnect Gmail in Settings.');
+}
+
 /** Build an authorized client from the user's stored token, persisting refreshes. */
 async function authorizedClient(userId: number): Promise<OAuth2Client> {
   const stored = await prisma.gmailToken.findUnique({ where: { userId } });
@@ -86,15 +114,18 @@ async function authorizedClient(userId: number): Promise<OAuth2Client> {
   });
 
   // Persist rotated access/refresh tokens.
-  client.on('tokens', async (tokens) => {
-    await prisma.gmailToken.update({
-      where: { userId },
-      data: {
-        accessToken: tokens.access_token ?? undefined,
-        refreshToken: tokens.refresh_token ?? undefined,
-        expiryDate: tokens.expiry_date ? BigInt(tokens.expiry_date) : undefined,
-      },
-    });
+  client.on('tokens', (tokens) => {
+    // Fire-and-forget: an unhandled rejection here would kill the request.
+    void prisma.gmailToken
+      .update({
+        where: { userId },
+        data: {
+          accessToken: tokens.access_token ?? undefined,
+          refreshToken: tokens.refresh_token ?? undefined,
+          expiryDate: tokens.expiry_date ? BigInt(tokens.expiry_date) : undefined,
+        },
+      })
+      .catch((e) => console.error('[gmail] failed to persist refreshed token:', e));
   });
 
   return client;
@@ -163,6 +194,15 @@ export interface SyncResult {
  * `days` bounds the query window; dedupes on gmail_message_id.
  */
 export async function syncGmail(userId: number, days = Number(process.env.BACKFILL_DAYS || 30)): Promise<SyncResult> {
+  try {
+    return await syncGmailInner(userId, days);
+  } catch (err) {
+    if (isInvalidGrant(err)) await onInvalidGrant(userId);
+    throw err;
+  }
+}
+
+async function syncGmailInner(userId: number, days: number): Promise<SyncResult> {
   const client = await authorizedClient(userId);
   const gmail = google.gmail({ version: 'v1', auth: client });
 

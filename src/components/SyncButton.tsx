@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { runSync } from '@/lib/syncClient';
 
 // Triggers the full ingestion pipeline (fetch → parse → categorize).
 export default function SyncButton({ onDone }: { onDone?: () => void }) {
@@ -11,10 +12,13 @@ export default function SyncButton({ onDone }: { onDone?: () => void }) {
     setBusy(true);
     setMsg(null);
     try {
-      const res = await fetch('/api/sync', { method: 'POST' });
-      const data = await res.json();
+      const data = await runSync();
       if (!data.ok) throw new Error(data.error || 'Sync failed');
-      setMsg(`+${data.sync.inserted} emails · ${data.parse.parsed} parsed · ${data.categorize.byRule + data.categorize.byLlm} categorized`);
+      if (data.busy || !data.sync || !data.parse || !data.categorize) {
+        setMsg(data.message || 'Sync already running…');
+      } else {
+        setMsg(`+${data.sync.inserted} emails · ${data.parse.parsed} parsed · ${data.categorize.byRule + data.categorize.byLlm} categorized`);
+      }
       onDone?.();
     } catch (e) {
       setMsg(e instanceof Error ? e.message : 'Sync failed');

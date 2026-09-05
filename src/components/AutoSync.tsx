@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { runSync } from '@/lib/syncClient';
 
 // Twice a day is plenty: bank alerts are read from Gmail, which keeps them
 // until we fetch them, so a longer gap costs nothing but far fewer wake-ups on
@@ -28,8 +29,8 @@ export default function AutoSync() {
       if (!force && Date.now() - last < SYNC_INTERVAL) return;
       running.current = true;
       try {
-        const res = await fetch('/api/sync', { method: 'POST' });
-        if (res.ok) {
+        const data = await runSync();
+        if (data.ok) {
           try {
             localStorage.setItem(KEY, String(Date.now()));
           } catch {
