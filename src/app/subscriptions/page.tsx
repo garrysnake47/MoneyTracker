@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { inr, fmtDate } from '@/lib/format';
 import Icon from '@/components/Icon';
 import Reveal from '@/components/Reveal';
+import AddSubscription from '@/components/AddSubscription';
 
 interface Sub {
   id: number;
@@ -42,6 +43,7 @@ export default function SubscriptionsPage() {
   const [monthly, setMonthly] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detecting, setDetecting] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -80,14 +82,20 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="space-y-5 pt-1">
+      {adding && <AddSubscription onAdded={load} onClose={() => setAdding(false)} />}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-[28px] font-extrabold tracking-tight">Subscriptions</h1>
           <p className="text-sm text-muted">Recurring payments detected from your history.</p>
         </div>
-        <button onClick={detect} disabled={detecting} className="btn-primary">
-          <Icon name="repeat" size={15} /> {detecting ? 'Detecting…' : 'Re-detect'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setAdding(true)} className="rounded-xl border border-border px-3.5 py-2 text-sm font-semibold">
+            + Add subscription
+          </button>
+          <button onClick={detect} disabled={detecting} className="btn-primary">
+            <Icon name="repeat" size={15} /> {detecting ? 'Detecting…' : 'Re-detect'}
+          </button>
+        </div>
       </header>
 
       {/* Headline: normalized monthly total, plus the two counts worth knowing. */}
@@ -150,7 +158,10 @@ export default function SubscriptionsPage() {
         <div className="rounded-3xl border border-dashed border-border py-12 text-center">
           <span className="tile mx-auto mb-3 h-12 w-12 bg-surface-2 text-muted"><Icon name="repeat" size={22} /></span>
           <p className="text-sm font-semibold">No subscriptions detected yet.</p>
-          <p className="mt-1 text-sm text-muted">Run “Re-detect” after syncing.</p>
+          <p className="mt-1 text-sm text-muted">Run “Re-detect” after syncing, or add one yourself.</p>
+          <button onClick={() => setAdding(true)} className="btn-primary mx-auto mt-4">
+            + Add subscription
+          </button>
         </div>
       ) : (
         <Reveal delay={40}>
