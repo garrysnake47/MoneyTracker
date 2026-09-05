@@ -143,6 +143,55 @@ export async function detectSubscriptions(userId: number): Promise<SubDetectionR
 }
 
 /**
+ * What we'd fill in for a merchant, from whatever charges exist.
+ *
+ * Shared by the candidate list and manual creation. Unlike detectSubscriptions
+ * this never refuses: one charge is enough, and an interval that matches no
+ * cadence band falls back to monthly rather than being dropped. Auto-detection
+ * has to be conservative because nobody asked for its guesses; a subscription
+ * the user is adding by hand has already been confirmed by them.
+ */
+export function summarizeMerchant(charges: { amount: number; occurredAt: Date }[]): {
+  medianAmount: number;
+  intervalDays: number;
+  cadence: 'monthly' | 'quarterly' | 'annual' | 'weekly';
+  firstSeen: Date;
+  lastCharged: Date;
+  nextExpected: Date;
+} {
+  const sorted = [...charges].sort((a, b) => a.occurredAt.getTime() - b.occurredAt.getTime());
+  const medianAmount = median(sorted.map((c) => c.amount));
+
+  const gaps: number[] = [];
+  for (let i = 1; i < sorted.length; i++) gaps.push(daysBetween(sorted[i - 1].occurredAt, sorted[i].occurredAt));
+  // A single charge tells us nothing about rhythm; monthly is the common case.
+  const rawInterval = gaps.length ? Math.round(median(gaps)) : 30;
+
+  const cadence = nearestCadence(rawInterval);
+  const intervalDays = CADENCE_DAYS[cadence];
+
+  const firstSeen = sorted[0].occurredAt;
+  const lastCharged = sorted[sorted.length - 1].occurredAt;
+  return { medianAmount, intervalDays, cadence, firstSeen, lastCharged, nextExpected: addDays(lastCharged, intervalDays) };
+}
+
+const CADENCE_DAYS = { weekly: 7, monthly: 30, quarterly: 91, annual: 365 } as const;
+
+/** Snap any gap to the closest cadence band, so nothing is left uncategorised. */
+function nearestCadence(days: number): 'weekly' | 'monthly' | 'quarterly' | 'annual' {
+  let best: keyof typeof CADENCE_DAYS = 'monthly';
+  for (const c of Object.keys(CADENCE_DAYS) as (keyof typeof CADENCE_DAYS)[]) {
+    if (Math.abs(days - CADENCE_DAYS[c]) < Math.abs(days - CADENCE_DAYS[best])) best = c;
+  }
+  return best;
+}
+
+/** Date-only value for Prisma @db.Date columns. */
+export function dateOnly(d: Date): Date {
+  return toDate(d);
+}
+
+/**
  * Normalized monthly recurring total (§9): annual /12, quarterly /3, plus
  * monthlies. Excludes dismissed and stopped subscriptions.
  */

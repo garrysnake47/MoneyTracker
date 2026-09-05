@@ -1,18 +1,20 @@
 // Chart/category palette matching the app's design language: muted, warm,
 // low-saturation tones that sit on white cards without shouting.
+// Generic index-keyed fallback for charts without a category name. Ordered so
+// that consecutive entries are far apart in hue, never adjacent shades.
 export const PALETTE = [
-  '#F5B841', // amber
-  '#8095F2', // periwinkle
-  '#2A8A69', // forest
-  '#D6584E', // terracotta
-  '#6FA8DC', // sky
-  '#A78BC4', // lilac
-  '#E3B778', // sand
-  '#86B49A', // sage
-  '#C97B63', // clay
+  '#D2534B', // red
+  '#3D7FC1', // blue
+  '#E0813C', // orange
+  '#3F9A5F', // green
+  '#6E5BC6', // indigo
+  '#C9A22B', // gold
+  '#2E8FA8', // teal
+  '#B0559C', // magenta
+  '#CC5F86', // pink
   '#7A808A', // slate
-  '#5D6BC0', // indigo
-  '#C9A227', // ochre
+  '#8FBF4D', // lime
+  '#C97B63', // clay
 ];
 
 export const INK = '#1E2026';
@@ -42,17 +44,27 @@ export interface CategoryStyle {
   icon: string;
 }
 
-/** Expense side: warm and earthy, spread across the hue wheel. */
+/**
+ * Expense side: one hue per category, walked around the wheel in roughly even
+ * steps at a shared saturation and lightness, so slices read as one system but
+ * never as shades of each other.
+ *
+ * The order below is the hue order, and it is the point: an earlier version put
+ * Food, EMI, House and Bills all in the warm quadrant, so a chart showing only
+ * those four looked like four tints of terracotta. Categories that commonly
+ * appear together must sit far apart on the wheel, not merely be distinct.
+ */
 const EXPENSE_HUES: Record<string, { solid: string; icon: string }> = {
-  food: { solid: '#E0813C', icon: 'food' },
-  emi: { solid: '#C2544B', icon: 'emi' },
-  sip: { solid: '#2F8F6D', icon: 'sip' },
-  transport: { solid: '#3D7FC1', icon: 'transport' },
-  shopping: { solid: '#9B62B8', icon: 'shopping' },
-  house: { solid: '#B07C3A', icon: 'house' },
-  bills: { solid: '#D19A2B', icon: 'bills' },
-  health: { solid: '#CC5F86', icon: 'health' },
-  other: { solid: '#6D7484', icon: 'other' },
+  emi: { solid: '#D2534B', icon: 'emi' }, //        ~4°   red
+  food: { solid: '#E0813C', icon: 'food' }, //     ~28°   orange
+  bills: { solid: '#C9A22B', icon: 'bills' }, //   ~46°   gold
+  sip: { solid: '#3F9A5F', icon: 'sip' }, //      ~140°   green
+  house: { solid: '#2E8FA8', icon: 'house' }, //  ~192°   teal
+  transport: { solid: '#3D7FC1', icon: 'transport' }, // ~210° blue
+  shopping: { solid: '#6E5BC6', icon: 'shopping' }, //   ~250° indigo
+  leisure: { solid: '#B0559C', icon: 'shopping' }, //    ~310° magenta
+  health: { solid: '#CC5F86', icon: 'health' }, // ~340°  pink
+  other: { solid: '#6D7484', icon: 'other' }, //          neutral
   uncategorized: { solid: '#8A909C', icon: 'other' },
 };
 
@@ -68,7 +80,9 @@ const INCOME_HUES: Record<string, { solid: string; icon: string }> = {
 };
 
 /** Fallbacks, so an unseeded or user-added category still gets a stable look. */
-const EXPENSE_FALLBACK = ['#D6584E', '#E0813C', '#C9A227', '#9B62B8', '#3D7FC1', '#C97B63', '#B07C3A', '#CC5F86'];
+// Spans the whole wheel too, so a user-added category (Leisure was one) can't
+// land in the warm quadrant just because the fallback pool was warm.
+const EXPENSE_FALLBACK = ['#B0559C', '#3F9A5F', '#3D7FC1', '#E0813C', '#6E5BC6', '#C9A22B', '#2E8FA8', '#CC5F86'];
 const INCOME_FALLBACK = ['#2A8A69', '#2E9BA8', '#4FA36B', '#5E8FD0', '#7A6FD0', '#3F9D8C'];
 
 function hash(s: string): number {
