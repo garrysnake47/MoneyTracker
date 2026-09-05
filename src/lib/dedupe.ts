@@ -59,15 +59,18 @@ function last4Compatible(a: Row, b: Row): boolean {
 
 /** Fold the losers' detail into the keeper, then delete them. */
 async function collapse(keeper: Row, losers: Row[]): Promise<void> {
-  // The richest merchant string is simply the most descriptive one.
+  // The richest merchant string is simply the most descriptive one. Only
+  // re-normalize when it actually changed: the keeper's own display name is
+  // not ours to rewrite. displayLabel is never touched either way.
   let rawMerchant = keeper.rawMerchant;
   for (const l of losers) if (l.rawMerchant.length > rawMerchant.length) rawMerchant = l.rawMerchant;
+  const merchantChanged = rawMerchant !== keeper.rawMerchant;
 
   await prisma.transaction.update({
     where: { id: keeper.id },
     data: {
       rawMerchant,
-      merchant: normalizeMerchant(rawMerchant),
+      merchant: merchantChanged ? normalizeMerchant(rawMerchant) : keeper.merchant,
       referenceId: keeper.referenceId ?? losers.find((l) => l.referenceId)?.referenceId ?? null,
       accountLast4: keeper.accountLast4 ?? losers.find((l) => l.accountLast4)?.accountLast4 ?? null,
       // A card flag on any copy wins: registering the card retro-flags rows.
