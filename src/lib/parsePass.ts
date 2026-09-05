@@ -147,6 +147,16 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
         continue;
       }
 
+      // Belt as well as braces: on a database that predates the
+      // unique(user_id, raw_email_id) index, this is what stops a re-parse or a
+      // second pass from inserting the same email twice.
+      const already = await prisma.transaction.findFirst({ where: { userId: email.userId, rawEmailId: email.id }, select: { id: true } });
+      if (already) {
+        await prisma.rawEmail.update({ where: { id: email.id }, data: { parseStatus: 'parsed', parseError: `already txn ${already.id}` } });
+        res.merged++;
+        continue;
+      }
+
       try {
         await prisma.transaction.create({
           data: {
