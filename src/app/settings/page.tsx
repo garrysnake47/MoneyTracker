@@ -111,6 +111,7 @@ function SettingsInner() {
           <RunBtn label="Parse pending" onClick={() => run('/api/parse', 'parse')} busy={busy} />
           <RunBtn label="Categorize" onClick={() => run('/api/categorize', 'categorize')} busy={busy} />
           <RunBtn label="Detect subscriptions" onClick={() => run('/api/subscriptions/detect', 'subs')} busy={busy} />
+          <RunBtn label="Remove duplicates" onClick={() => run('/api/transactions/dedupe', 'dedupe')} busy={busy} />
         </div>
       </section>
 
