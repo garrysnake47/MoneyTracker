@@ -147,25 +147,32 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
         continue;
       }
 
-      await prisma.transaction.create({
-        data: {
-          userId: email.userId,
-          rawEmailId: email.id,
-          source: 'gmail',
-          amount: new Prisma.Decimal(txn.amount),
-          direction: txn.direction,
-          occurredAt: txn.occurredAt,
-          rawMerchant: txn.rawMerchant,
-          merchant,
-          accountLast4: txn.accountLast4,
-          instrument: txn.instrument,
-          referenceId: txn.referenceId,
-          isCreditCard: txn.instrument === 'card' && txn.accountLast4 != null && ccLast4.has(txn.accountLast4),
-          categorySource: 'unassigned',
-        },
-      });
+      try {
+        await prisma.transaction.create({
+          data: {
+            userId: email.userId,
+            rawEmailId: email.id,
+            source: 'gmail',
+            amount: new Prisma.Decimal(txn.amount),
+            direction: txn.direction,
+            occurredAt: txn.occurredAt,
+            rawMerchant: txn.rawMerchant,
+            merchant,
+            accountLast4: txn.accountLast4,
+            instrument: txn.instrument,
+            referenceId: txn.referenceId,
+            isCreditCard: txn.instrument === 'card' && txn.accountLast4 != null && ccLast4.has(txn.accountLast4),
+            categorySource: 'unassigned',
+          },
+        });
+        res.parsed++;
+      } catch (err: any) {
+        // Unique (user_id, raw_email_id): a concurrent pass already inserted this
+        // one. Last line of defence behind the pipeline lock — not an error.
+        if (err?.code !== 'P2002') throw err;
+        res.merged++;
+      }
       await prisma.rawEmail.update({ where: { id: email.id }, data: { parseStatus: 'parsed', parseError: null } });
-      res.parsed++;
     } catch (err) {
       res.errors++;
       const msg = err instanceof Error ? err.message : String(err);
