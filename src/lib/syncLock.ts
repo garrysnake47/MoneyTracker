@@ -2,28 +2,27 @@
  * Per-user pipeline lock.
  *
  * Sync can be triggered from four places at once — the Sync button, AutoSync on
- * page load, the Settings page, and the 2am cron — and serverless means they run
- * in separate processes with no shared memory. Two overlapping parse passes read
- * the same `pending` emails and each insert a transaction for them, which is how
- * a single click ends up doubling the ledger.
+ * page load, the Settings page, and the 2am cron. Two overlapping parse passes
+ * read the same `pending` emails and each insert a transaction for them, which
+ * is how a single click ends up doubling the ledger.
  *
- * Two gates:
- *   1. an in-process set, which covers a single server instance (dev, or one
- *      warm serverless container) with no database round-trip;
- *   2. a row in sync_state claimed with a conditional UPDATE (atomic in
- *      Postgres), which covers separate instances.
+ * This lock is deliberately in-process and schema-free. An earlier version
+ * claimed a `sync_state.syncing_since` column, which meant that deploying the
+ * code without running `prisma db push` broke sync outright — and, because
+ * /api/status reads the same model, took the Gmail connection banner down with
+ * it. A lock that can break the app it protects is worse than a narrower lock:
+ * duplicates that slip past a single instance are removed by dedupeTransactions
+ * on the very next sync, so the failure mode is a tidy-up, not a wrong ledger.
  *
- * A database lock older than LOCK_TTL_MS is treated as abandoned — a serverless
- * invocation that was killed mid-run must not wedge sync forever.
+ * What this covers: concurrent requests hitting the same server instance — the
+ * dev server, a self-hosted deployment, or one warm serverless container, which
+ * is where the overlapping-click case actually lands. What it does not cover:
+ * two separate instances starting at the same instant. For that, the defences
+ * are parsePass's pre-insert check, the optional unique(user_id, raw_email_id)
+ * index, and the dedupe sweep.
  */
-import { prisma } from './db';
 
-const LOCK_TTL_MS = 5 * 60 * 1000; // > the 60s function ceiling, with headroom
-
-/** Prisma codes for "the schema isn't migrated yet". */
-const SCHEMA_MISSING = new Set(['P2021', 'P2022']);
-
-let warnedAboutSchema = false;
+const running = new Set<number>();
 
 export class SyncBusyError extends Error {
   constructor() {
@@ -32,66 +31,13 @@ export class SyncBusyError extends Error {
   }
 }
 
-// In-process gate: same instance, overlapping requests.
-const local = new Set<number>();
-
-function isSchemaMissing(err: unknown): boolean {
-  return SCHEMA_MISSING.has((err as { code?: string })?.code ?? '');
-}
-
-/**
- * A database that predates the `syncing_since` column must not have sync break
- * on it: warn once and run unlocked. The in-process gate still applies, and
- * dedupeTransactions cleans up anything that slips through.
- */
-function warnSchema(): void {
-  if (warnedAboutSchema) return;
-  warnedAboutSchema = true;
-  console.warn(
-    '[syncLock] sync_state.syncing_since is missing — running without the cross-instance lock. ' +
-      'Run `npx prisma db push` against this database to enable it.'
-  );
-}
-
-async function acquireDb(userId: number): Promise<boolean> {
-  try {
-    const stale = new Date(Date.now() - LOCK_TTL_MS);
-
-    // Ensure the row exists so the conditional update below has something to hit.
-    await prisma.syncState.upsert({ where: { userId }, update: {}, create: { userId } });
-
-    const claimed = await prisma.syncState.updateMany({
-      where: { userId, OR: [{ syncingSince: null }, { syncingSince: { lt: stale } }] },
-      data: { syncingSince: new Date() },
-    });
-    return claimed.count === 1;
-  } catch (err) {
-    if (!isSchemaMissing(err)) throw err;
-    warnSchema();
-    return true; // degrade to the in-process gate rather than failing the sync
-  }
-}
-
-async function releaseDb(userId: number): Promise<void> {
-  try {
-    await prisma.syncState.updateMany({ where: { userId }, data: { syncingSince: null } });
-  } catch (err) {
-    if (!isSchemaMissing(err)) throw err;
-  }
-}
-
 /** Run `fn` holding this user's pipeline lock. Throws SyncBusyError if held. */
 export async function withSyncLock<T>(userId: number, fn: () => Promise<T>): Promise<T> {
-  if (local.has(userId)) throw new SyncBusyError();
-  local.add(userId);
-
-  let heldDb = false;
+  if (running.has(userId)) throw new SyncBusyError();
+  running.add(userId);
   try {
-    heldDb = await acquireDb(userId);
-    if (!heldDb) throw new SyncBusyError();
     return await fn();
   } finally {
-    local.delete(userId);
-    if (heldDb) await releaseDb(userId);
+    running.delete(userId);
   }
 }

@@ -88,8 +88,10 @@ model Transaction {
   subscription Subscription? @relation(fields: [subscriptionId], references: [id])
 
   /// One raw email yields at most one transaction. Postgres treats NULLs as
-  /// distinct, so manually-added rows (raw_email_id NULL) are unaffected. This
-  /// is what stops two overlapping parse passes from inserting the same txn twice.
+  /// distinct, so manually-added rows (raw_email_id NULL) are unaffected.
+  /// Optional hardening: the app stays correct without it (parsePass checks
+  /// first, and dedupe sweeps every sync), so an unmigrated database still
+  /// behaves — it just loses the last-resort guarantee.
   @@unique([userId, rawEmailId])
   @@index([userId, occurredAt, amount])
   @@index([userId, merchant])
@@ -202,10 +204,6 @@ model SyncState {
   lastHistoryId  String?   @map("last_history_id")
   lastSyncAt     DateTime? @map("last_sync_at")
   lastSyncStatus String?   @map("last_sync_status")
-  /// Set while a sync/parse pipeline is running for this user; cleared when it
-  /// finishes. Stale entries (older than the lock TTL) are reclaimed, so a
-  /// crashed serverless invocation can't wedge sync forever. See lib/syncLock.ts.
-  syncingSince   DateTime? @map("syncing_since")
 
   @@map("sync_state")
 }
