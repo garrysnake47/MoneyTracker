@@ -156,12 +156,25 @@ first large backfill locally with `DATABASE_URL="<prod>" npm run sync`.
 
 Once deployed over HTTPS (Vercel gives you this):
 
+There is an **Install app** button in the product itself — in the landing-page
+header and hero, and in the sidebar once you are signed in. On Chrome it fires
+the browser's native install prompt; on Safari and anywhere else the prompt is
+unavailable, it opens step-by-step instructions for that platform. The button
+hides itself once the app is already running standalone.
+
+Manually, if you prefer:
+
 - **Android / Chrome:** open the site → menu → **Install app** / **Add to Home screen**.
-- **iOS / Safari:** Share → **Add to Home Screen**.
+- **iOS / Safari:** Share → **Add to Home Screen**. Must be Safari — Chrome on iOS cannot install.
 
 The app is responsive (mobile bottom-tab nav, desktop sidebar) and ships a
 [manifest](public/manifest.json) + [service worker](public/sw.js) with a cached app
 shell. API responses are never cached — financial data always loads live.
+Installed launches open at `/dashboard`, skipping the marketing page, and the
+icon's long-press menu jumps straight to Transactions or the review queue.
+
+Installability requires HTTPS — `localhost` counts during development, but over
+plain HTTP on a LAN address the browser will not offer to install.
 
 ---
 

@@ -16,6 +16,10 @@ export const metadata: Metadata = {
     icon: '/icons/icon-192.png',
     apple: '/icons/apple-touch-icon.png',
   },
+  // Next only emits the modern `mobile-web-app-capable`; iOS versions before
+  // 17.4 read the apple-prefixed one, and without it the home-screen icon
+  // opens in a Safari tab instead of full screen.
+  other: { 'apple-mobile-web-app-capable': 'yes' },
 };
 
 export const viewport: Viewport = {

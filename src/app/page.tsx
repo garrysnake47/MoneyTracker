@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import Reveal from '@/components/Reveal';
+import InstallApp from '@/components/InstallApp';
 
 /* Issuer brand colours — used at full saturation on the marquee pills. */
 const BANKS = [
@@ -91,6 +92,7 @@ export default function LandingPage() {
           </nav>
           <div className="ml-auto sm:ml-3 flex items-center gap-2">
             {/* The hero's "I have an account" covers sign-in on small screens. */}
+            <InstallApp className="btn-ghost hidden sm:inline-flex whitespace-nowrap gap-1.5" label="Get the app" />
             <Link href="/login" className="btn-ghost hidden xs:inline-flex whitespace-nowrap">Sign in</Link>
             <Link href="/signup" className="btn-primary whitespace-nowrap px-4 sm:px-5">Get started</Link>
           </div>
@@ -123,6 +125,7 @@ export default function LandingPage() {
                 <span aria-hidden>→</span>
               </Link>
               <Link href="/login" className="btn-outline w-full px-6 py-3 text-[15px] sm:w-auto">I have an account</Link>
+              <InstallApp className="btn-ghost w-full justify-center gap-2 px-6 py-3 text-[15px] sm:w-auto" label="Install on your phone" />
             </div>
 
             <p className="animate-fade-up mt-4 text-xs text-muted" style={{ animationDelay: '220ms' }}>
