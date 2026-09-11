@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Icon from './Icon';
+import InstallApp from './InstallApp';
 
 const LINKS = [
   { href: '/dashboard', label: 'Overview', icon: 'overview' },
@@ -69,6 +70,10 @@ export default function Nav() {
         ))}
       </nav>
       <div className="mt-auto space-y-2">
+        <InstallApp
+          className="flex w-full items-center gap-3 rounded-full px-3.5 py-2.5 text-sm text-[rgb(var(--sidebar-muted))] transition-colors hover:bg-white/[0.06] hover:text-white"
+          label="Install app"
+        />
         <button onClick={logout} className="flex w-full items-center gap-3 rounded-full px-3.5 py-2.5 text-sm text-[rgb(var(--sidebar-muted))] transition-colors hover:bg-white/[0.06] hover:text-white">
           <Icon name="logout" size={18} className="shrink-0" />
           Sign out

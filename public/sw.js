@@ -1,7 +1,7 @@
 /* Spendwise service worker — enables install + a basic app-shell cache.
  * Network-first for navigations (so data stays fresh), cache fallback offline.
  * API responses are never cached (financial data must be live). */
-const CACHE = 'mt-shell-v1';
+const CACHE = 'mt-shell-v2';
 const SHELL = ['/', '/manifest.json'];
 
 self.addEventListener('install', (event) => {
