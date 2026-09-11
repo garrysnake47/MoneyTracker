@@ -83,7 +83,7 @@ export default function OverviewPage() {
     <div className="space-y-5 pt-1">
       <header className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Overview</h1>
+          <h1 className="h-page">Overview</h1>
           <p className="text-sm text-muted">Spend excludes transfers, EMIs counted, card bills netted out. Credit-card charges count as spend but not as account outflow.</p>
         </div>
         <div className="flex items-center gap-3">

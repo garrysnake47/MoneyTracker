@@ -147,7 +147,7 @@ export default function CreditCardPage() {
     <div className="space-y-5 pt-1">
       <header className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Credit card</h1>
+          <h1 className="h-page">Credit card</h1>
           <p className="text-sm text-muted">Card charges count as spend but don’t leave your account until you pay the bill.</p>
         </div>
         <Select

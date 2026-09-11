@@ -85,7 +85,7 @@ export default function SubscriptionsPage() {
       {adding && <AddSubscription onAdded={load} onClose={() => setAdding(false)} />}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Subscriptions</h1>
+          <h1 className="h-page">Subscriptions</h1>
           <p className="text-sm text-muted">Recurring payments detected from your history.</p>
         </div>
         <div className="flex items-center gap-2">

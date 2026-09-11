@@ -110,6 +110,14 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
   }
   .select::-ms-expand { display: none; }
   .chip { @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold; }
+
+  /* ── Headings ──────────────────────────────────────────────────────────
+     Page titles used to be pinned at 28px, which is a desktop size: on a
+     360px phone it ate the header row and pushed the action buttons into
+     the gutter. These scale with the viewport and settle at the old size
+     once there is room for it. */
+  .h-page { @apply text-[clamp(1.375rem,5.2vw,1.75rem)] font-extrabold tracking-tight; }
+  .h-section { @apply text-[clamp(1.0625rem,3.6vw,1.25rem)] font-extrabold tracking-tight; }
   .tile { @apply grid place-items-center rounded-2xl; }
 
   /* ── Surfaces ──────────────────────────────────────────────────────────
@@ -141,7 +149,7 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
      Replaces bare "Edit"/"Delete" text links: a real hit target that shows
      its intent on hover instead of a blue-ish word. */
   .icon-btn {
-    @apply grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-border bg-surface text-muted transition-all;
+    @apply grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border bg-surface text-muted transition-all sm:h-8 sm:w-8;
     @apply hover:-translate-y-px hover:text-text hover:border-[rgb(var(--text))]/25 hover:shadow-card active:translate-y-0 active:scale-95;
   }
   .icon-btn-danger { @apply icon-btn hover:border-transparent hover:bg-[rgb(var(--debit))] hover:text-white; }

@@ -95,7 +95,7 @@ export default function KeywordsPage() {
   return (
     <div className="space-y-5">
       <header className="animate-fade-up">
-        <h1 className="text-[28px] font-extrabold tracking-tight">Keywords</h1>
+        <h1 className="h-page">Keywords</h1>
         <p className="text-sm text-muted mt-1">
           Map keywords to categories. If a transaction’s merchant contains the keyword, it’s filed automatically —
           e.g. <span className="font-semibold text-text">hotel, restaurant, bar</span> → Food.
@@ -169,7 +169,7 @@ export default function KeywordsPage() {
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-extrabold tracking-tight" style={{ color: st.ink }}>{cat}</h2>
+                      <h2 className="h-section" style={{ color: st.ink }}>{cat}</h2>
                       <span
                         className="rounded-full px-2.5 py-0.5 text-xs font-bold text-white"
                         style={{ background: st.solid }}

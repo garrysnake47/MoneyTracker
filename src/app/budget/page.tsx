@@ -73,7 +73,7 @@ export default function BudgetPage() {
   return (
     <div className="space-y-5">
       <header className="animate-fade-up">
-        <h1 className="text-[28px] font-extrabold tracking-tight">Budgets</h1>
+        <h1 className="h-page">Budgets</h1>
         <p className="text-sm text-muted mt-1">Set a monthly cap per category and track spending against it.</p>
       </header>
 

@@ -58,7 +58,7 @@ function SettingsInner() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[28px] font-extrabold">Settings</h1>
+      <h1 className="h-page">Settings</h1>
 
       {gmailOk && <div className="rounded-lg border border-credit/40 bg-credit/5 p-3 text-sm text-credit">✓ Gmail connected.</div>}
       {gmailError && (

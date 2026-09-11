@@ -218,12 +218,13 @@ export default function TransactionsPage() {
     <div className="space-y-4">
       <header className="animate-fade-up flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Transactions</h1>
+          <h1 className="h-page">Transactions</h1>
           <p className="text-sm text-muted">{total} shown · newest first</p>
         </div>
-        <div className="flex items-center gap-2">
-          {/* Segmented range switch — splits the row evenly on phones. */}
-          <div className="inline-flex flex-1 rounded-full border border-border bg-surface-2 p-0.5 text-sm sm:flex-none">
+        {/* Wraps on phones: four controls on one 343px row left each of them
+            squeezed against the gutter. */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex w-full rounded-full border border-border bg-surface-2 p-0.5 text-sm xs:w-auto xs:flex-1 sm:flex-none">
             <button onClick={() => { setPage(1); setFrom(monthStart); setTo(''); }} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 sm:flex-none ${from === monthStart && !to ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>This month</button>
             <button onClick={() => { setPage(1); setFrom(''); setTo(''); }} className={`flex-1 whitespace-nowrap rounded-full px-3 py-1.5 sm:flex-none ${!from ? 'bg-surface shadow-sm font-medium' : 'text-muted'}`}>All time</button>
           </div>
@@ -239,7 +240,7 @@ export default function TransactionsPage() {
                 ),
               );
             }}
-            className="btn-outline shrink-0 gap-1.5 whitespace-nowrap px-3 py-2"
+            className="btn-outline flex-1 gap-1.5 whitespace-nowrap px-3 py-2 sm:flex-none"
             title="Transactions you've deleted — restore them from here"
           >
             Deleted
@@ -247,7 +248,7 @@ export default function TransactionsPage() {
               <span className="rounded-full bg-surface-2 px-1.5 text-xs font-bold text-muted">{deleted.length}</span>
             )}
           </button>
-          <button onClick={() => setAdding(true)} className="btn-primary shrink-0 px-4 py-2">
+          <button onClick={() => setAdding(true)} className="btn-primary flex-1 px-4 py-2 sm:flex-none">
             <Icon name="plus" size={16} /> Add
           </button>
         </div>
@@ -329,6 +330,28 @@ export default function TransactionsPage() {
               <div className="rounded-2xl border border-border bg-surface shadow-card divide-y divide-border [&>*:first-child]:rounded-t-2xl [&>*:last-child]:rounded-b-2xl">
                 {g.list.map((t) => {
                   const st = categoryStyle(t.categoryName, t.direction === 'debit');
+                  // Declared once and rendered in whichever of the two row
+                  // layouts is visible, so the pair can never drift apart.
+                  const actions = (
+                    <>
+                      <button
+                        onClick={() => setEditing(editing === t.id ? null : t.id)}
+                        className={editing === t.id ? 'icon-btn-accent bg-[rgb(var(--ink))] text-white' : 'icon-btn-accent'}
+                        aria-label={editing === t.id ? `Close editor for ${t.label}` : `Edit ${t.label}`}
+                        title={editing === t.id ? 'Close' : 'Edit'}
+                      >
+                        <Icon name={editing === t.id ? 'close' : 'edit'} size={15} />
+                      </button>
+                      <button
+                        onClick={() => remove(t)}
+                        className="icon-btn-danger"
+                        aria-label={`Delete ${t.label}`}
+                        title="Delete"
+                      >
+                        <Icon name="trash" size={15} />
+                      </button>
+                    </>
+                  );
                   return (
                   <div
                     key={t.id}
@@ -338,7 +361,7 @@ export default function TransactionsPage() {
                         : 'hover:bg-surface-2/60'
                     }`}
                   >
-                    <div className="flex items-center gap-3.5">
+                    <div className="flex items-start gap-3 sm:items-center sm:gap-3.5">
                       {/* Category tile — the row's colour anchor, so a glance
                           down the list reads as categories, not grey text. */}
                       <span
@@ -349,7 +372,15 @@ export default function TransactionsPage() {
                       </span>
 
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[15px] font-bold">{t.label}</div>
+                        {/* On phones the amount sits beside the label: the old
+                            single-row layout left the label and every capsule
+                            sharing a ~53px column, so both were unreadable. */}
+                        <div className="flex items-start gap-2">
+                          <div className="min-w-0 flex-1 truncate text-[15px] font-bold">{t.label}</div>
+                          <div className={`shrink-0 text-right text-[15px] font-extrabold tabular sm:hidden ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
+                            {t.direction === 'debit' ? '−' : '+'}{inr(t.amount)}
+                          </div>
+                        </div>
                         <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs font-semibold text-muted">
                           <span className="tabular">{timeOf(t.occurredAt)}</span>
                           <span className="text-muted-soft">·</span>
@@ -387,31 +418,17 @@ export default function TransactionsPage() {
                               <Icon name="repeat" size={13} style={{ color: '#A78BC4' }} /> Recurring
                             </span>
                           )}
+                          {/* Phones: actions ride at the end of the capsule
+                              row instead of stealing width from it. */}
+                          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:hidden">{actions}</div>
                         </div>
                       </div>
 
-                      <div className={`shrink-0 text-right text-base font-extrabold tabular sm:text-[17px] ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
+                      <div className={`hidden shrink-0 text-right text-base font-extrabold tabular sm:block sm:text-[17px] ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
                         {t.direction === 'debit' ? '−' : '+'}{inr(t.amount)}
                       </div>
 
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <button
-                          onClick={() => setEditing(editing === t.id ? null : t.id)}
-                          className={editing === t.id ? 'icon-btn-accent bg-[rgb(var(--ink))] text-white' : 'icon-btn-accent'}
-                          aria-label={editing === t.id ? `Close editor for ${t.label}` : `Edit ${t.label}`}
-                          title={editing === t.id ? 'Close' : 'Edit'}
-                        >
-                          <Icon name={editing === t.id ? 'close' : 'edit'} size={15} />
-                        </button>
-                        <button
-                          onClick={() => remove(t)}
-                          className="icon-btn-danger"
-                          aria-label={`Delete ${t.label}`}
-                          title="Delete"
-                        >
-                          <Icon name="trash" size={15} />
-                        </button>
-                      </div>
+                      <div className="hidden shrink-0 items-center gap-1.5 sm:flex">{actions}</div>
                     </div>
 
                     {editing === t.id && (
