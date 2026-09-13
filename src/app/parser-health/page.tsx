@@ -13,7 +13,7 @@ interface Health {
 export default function ParserHealthPage() {
   const [data, setData] = useState<Health | null>(null);
   const [loading, setLoading] = useState(true);
-  const [reparsing, setReparsing] = useState(false);
+  const [reparsing, setReparsing] = useState<'pending' | 'unparsed' | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -26,11 +26,11 @@ export default function ParserHealthPage() {
     load();
   }, [load]);
 
-  async function reparse() {
-    setReparsing(true);
-    await fetch('/api/parse', { method: 'POST' });
+  async function reparse(retryUnparsed = false) {
+    setReparsing(retryUnparsed ? 'unparsed' : 'pending');
+    await fetch(`/api/parse${retryUnparsed ? '?retryUnparsed=1' : ''}`, { method: 'POST' });
     await load();
-    setReparsing(false);
+    setReparsing(null);
   }
 
   return (
@@ -40,9 +40,21 @@ export default function ParserHealthPage() {
           <h1 className="h-page">Parser health</h1>
           <p className="text-sm text-muted">Unparsed emails are the discovery mechanism for new bank templates.</p>
         </div>
-        <button onClick={reparse} disabled={reparsing} className="btn-primary w-full shrink-0 whitespace-nowrap px-4 py-2 sm:w-auto">
-          {reparsing ? 'Re-parsing…' : 'Re-parse pending'}
-        </button>
+        {/* Retrying the unparsed is the point of this page: a template fix is
+            worth nothing until the mail it now understands is queued again. */}
+        <div className="flex shrink-0 flex-col gap-2 xs:flex-row">
+          <button onClick={() => reparse(false)} disabled={reparsing !== null} className="btn-outline w-full whitespace-nowrap px-4 py-2 xs:w-auto">
+            {reparsing === 'pending' ? 'Re-parsing…' : 'Parse pending'}
+          </button>
+          <button
+            onClick={() => reparse(true)}
+            disabled={reparsing !== null}
+            className="btn-primary w-full whitespace-nowrap px-4 py-2 xs:w-auto"
+            title="Put every unparsed email back in the queue — use after a parser fix"
+          >
+            {reparsing === 'unparsed' ? 'Retrying…' : 'Retry unparsed'}
+          </button>
+        </div>
       </header>
 
       <TrackedBanks />

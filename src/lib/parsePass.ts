@@ -79,8 +79,29 @@ function richer(a: string, b: string): string {
   return b.length > a.length ? b : a;
 }
 
-/** Run one parse pass over pending raw_emails. `limit` caps a single batch. */
-export async function runParsePass(userId: number, limit = 500): Promise<ParsePassResult> {
+/**
+ * Run one parse pass over pending raw_emails. `limit` caps a single batch.
+ *
+ * `retryUnparsed` puts mail that matched no template back in the queue. Every
+ * improvement to a bank template used to be worth nothing to the mail already
+ * in the database: a pass only ever looked at `pending`, so an email marked
+ * `unparsed` under the old templates stayed unparsed forever and the money it
+ * described never appeared, however good the parser later became. `ignored`
+ * is deliberately left alone — an OTP or a promo is not a missed transaction —
+ * and so is `parsed`, which would duplicate.
+ */
+export async function runParsePass(
+  userId: number,
+  limit = 500,
+  { retryUnparsed = false }: { retryUnparsed?: boolean } = {},
+): Promise<ParsePassResult> {
+  if (retryUnparsed) {
+    await prisma.rawEmail.updateMany({
+      where: { userId, parseStatus: 'unparsed' },
+      data: { parseStatus: 'pending', parseError: null },
+    });
+  }
+
   const pending = await prisma.rawEmail.findMany({
     where: { userId, parseStatus: 'pending' },
     orderBy: { receivedAt: 'asc' },
