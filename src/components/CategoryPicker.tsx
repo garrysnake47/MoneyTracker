@@ -2,7 +2,7 @@
 
 import Icon from './Icon';
 import { categoryStyle } from '@/lib/palette';
-import type { CategoryOpt } from '@/lib/useCategories';
+import { categoriesForSide, type CategoryOpt } from '@/lib/useCategories';
 
 export interface Picked {
   categoryId: number | null;
@@ -35,7 +35,7 @@ export default function CategoryPicker({
   /** Show 1-9 keyboard hints (the review queue drives this by keystroke). */
   numbered?: boolean;
 }) {
-  const visible = side ? categories.filter((c) => (side === 'income' ? !c.isExpense : c.isExpense)) : categories;
+  const visible = side ? categoriesForSide(categories, side) : categories;
 
   if (visible.length === 0) {
     return (

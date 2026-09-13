@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { inr, fmtDateTime } from '@/lib/format';
-import { useCategories } from '@/lib/useCategories';
+import { useCategories, categoriesForSide } from '@/lib/useCategories';
 import CategoryEditor from '@/components/CategoryEditor';
 import CategoryPicker from '@/components/CategoryPicker';
 import Select, { monthOpts } from '@/components/Select';
@@ -66,8 +66,7 @@ export default function ReviewPage() {
     if (current) setSide(current.direction === 'credit' ? 'income' : 'expense');
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Income = the non-expense side of the taxonomy (Salary, Bonus, Extra, Transfers).
-  const visible = categories.filter((c) => (side === 'income' ? !c.isExpense : c.isExpense));
+  const visible = categoriesForSide(categories, side);
 
   const assign = useCallback(
     async (categoryId: number, subcategoryId?: number | null) => {

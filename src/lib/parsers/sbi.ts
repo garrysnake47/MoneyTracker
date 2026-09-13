@@ -1,4 +1,4 @@
-import { EmailInput, ParseResult, Parser, ignoredReason, last4, parseAmount, parseDateTime } from './types';
+import { EmailInput, ParseResult, Parser, atmWithdrawal, ignoredReason, last4, parseAmount, parseDateTime } from './types';
 
 /**
  * SBI / SBI Card alert templates.
@@ -11,6 +11,12 @@ export const sbiParser: Parser = (email: EmailInput): ParseResult => {
 
   const body = email.bodyText || '';
   const when = parseDateTime(body, email.receivedAt);
+
+  // ── ATM cash withdrawal ──────────────────────────────────────────────────
+  // "Rs.2000 withdrawn at SBI ATM <id> from A/c X4567" has no "to <payee>",
+  // so the debit template below never matched it.
+  const cash = atmWithdrawal(body, when, body.match(/(?:UPI )?Ref\.?\s*(?:no)?\.?\s*(\w+)/i)?.[1] ?? null);
+  if (cash) return { status: 'parsed', txn: cash };
 
   let m = body.match(/Rs\.?\s*([\d,]+\.?\d*)\s+debited from A\/c\s*(\w*\d{2,4}).*?to\s+(?:M\/s\s+)?(.+?)\s+(?:via|on|Ref)/i);
   if (m) {

@@ -46,3 +46,22 @@ export function useCategories() {
   }, []);
   return categories;
 }
+
+/**
+ * The categories offered for one side of a transaction.
+ *
+ * Income is the non-expense side of the taxonomy, and expense is the rest —
+ * plus Transfers, which is the exception that made cash disappear. Transfers is
+ * is_expense = false so that moving your own money never counts as spend, but
+ * that flag was also driving what the pickers offered: on a debit only
+ * is_expense categories were listed, so "Transfers › Cash withdrawal" — the
+ * home for every ATM withdrawal — could not be chosen for the debit it always
+ * is. A transfer genuinely runs in both directions, so it belongs on both.
+ */
+export function categoriesForSide(categories: CategoryOpt[], side: 'expense' | 'income'): CategoryOpt[] {
+  return categories.filter((c) => (c.isExpense ? side === 'expense' : side === 'income' || isTransfers(c)));
+}
+
+function isTransfers(c: CategoryOpt): boolean {
+  return /^transfers$/i.test(c.name);
+}

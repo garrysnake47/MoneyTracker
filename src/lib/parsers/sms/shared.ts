@@ -46,15 +46,25 @@ export function smsReference(text: string): string | null {
 /**
  * The merchant/counterparty. SMS puts it after "at", "to", "VPA", or
  * "towards"; it runs until a reference number, a date, or the end.
+ *
+ * Every capture also stops at "from" and at the balance tail ("Avl Bal"):
+ * a withdrawal reads "withdrawn at HDFC BANK ATM KORAMANGALA from A/c XX5427",
+ * and without those the merchant kept the account token glued to the place.
  */
+const MERCHANT_END = String.raw`(?=\s+on\b|\s+from\b|\s+ref|\s+txn|\s+upi|\s+avl\b|\s+bal\b|[.;]|$)`;
+
+function merchantRe(prefix: string): RegExp {
+  return new RegExp(prefix + String.raw`([^\n.;]+?)` + MERCHANT_END, 'i');
+}
+
 export function smsMerchant(text: string): string | null {
   const patterns = [
-    /(?:\bto\s+VPA\s+)([^\n.;]+?)(?=\s+on\b|\s+ref|\s+upi|[.;]|$)/i,
-    /(?:\btrf\s+to\s+)([^\n.;]+?)(?=\s+ref|\s+on\b|[.;]|$)/i,
-    /(?:\bat\s+)([^\n.;]+?)(?=\s+on\b|\s+ref|\s+txn|[.;]|$)/i,
-    /(?:\bto\s+)([^\n.;]+?)(?=\s+on\b|\s+ref|\s+upi|[.;]|$)/i,
-    /(?:\btowards\s+)([^\n.;]+?)(?=\s+on\b|\s+ref|[.;]|$)/i,
-    /(?:\bfrom\s+)([^\n.;]+?)(?=\s+on\b|\s+ref|[.;]|$)/i,
+    merchantRe(String.raw`\bto\s+VPA\s+`),
+    merchantRe(String.raw`\btrf\s+to\s+`),
+    merchantRe(String.raw`\bat\s+`),
+    merchantRe(String.raw`\bto\s+`),
+    merchantRe(String.raw`\btowards\s+`),
+    merchantRe(String.raw`\bfrom\s+`),
   ];
   for (const re of patterns) {
     const m = text.match(re);
@@ -95,6 +105,13 @@ export function matchGenericSms(input: EmailInput): ParseResult {
   const amount = parseAmount(amountMatch[1]);
   if (amount == null || amount <= 0) return { status: 'unparsed' };
 
+  const instrument = smsInstrument(text);
+  // A withdrawal names no counterparty, so "Unknown" was the merchant for
+  // every cash SMS that didn't spell out the ATM's location — and a list of
+  // "Unknown" rows tells you nothing. Name it for what it is instead; the
+  // seeded rules then file it under Transfers › Cash withdrawal.
+  const merchant = smsMerchant(text) ?? (instrument === 'atm' ? 'ATM Withdrawal' : 'Unknown');
+
   return {
     status: 'parsed',
     txn: {
@@ -102,10 +119,10 @@ export function matchGenericSms(input: EmailInput): ParseResult {
       // A message containing both verbs is a debit that mentions a refund
       // window etc.; the debit reading is the safe one.
       direction: debit ? 'debit' : 'credit',
-      rawMerchant: smsMerchant(text) ?? 'Unknown',
+      rawMerchant: merchant,
       occurredAt: parseDateTime(text, input.receivedAt),
       accountLast4: smsLast4(text),
-      instrument: smsInstrument(text),
+      instrument,
       referenceId: smsReference(text),
     },
   };

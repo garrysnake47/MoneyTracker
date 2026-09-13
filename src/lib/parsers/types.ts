@@ -114,3 +114,75 @@ export function ignoredReason(email: EmailInput): string | null {
   if (/unsubscribe|offer|cashback offer|great deals|pre-approved|congratulations/.test(hay) && !movedMoney) return 'promo';
   return null;
 }
+
+// ── Cash withdrawals ────────────────────────────────────────────────────────
+
+/**
+ * ATM cash withdrawal, for every bank.
+ *
+ * None of the four bank modules had a template for one, so a withdrawal email
+ * matched nothing and the money simply never appeared in the app — the biggest
+ * single debit of a month could be missing from the ledger. The wording is much
+ * more uniform across banks than the UPI/card templates are (a withdrawal is
+ * always "withdrawn"/"cash withdrawal"/"ATM-WDL" against an account), so one
+ * shared matcher serves all of them and each parser calls it before its own
+ * generic debit fallbacks.
+ *
+ * The merchant is the ATM's location when the alert names one, because that is
+ * the only thing distinguishing one withdrawal from another; otherwise the
+ * literal "ATM Withdrawal", which the seeded keyword rules already file under
+ * Transfers › Cash withdrawal.
+ */
+const ATM_HINT = /\batm\b|cash withdrawal|cash wdl|withdrawn|self\s*withdrawal/i;
+
+export function atmWithdrawal(body: string, when: Date, referenceId: string | null): ParsedTxn | null {
+  if (!ATM_HINT.test(body)) return null;
+
+  // The amount, with the account it came out of. Both orderings occur:
+  //   "Rs.5000.00 has been withdrawn from your A/c XX5427 at HDFC BANK ATM..."
+  //   "A/c XX123 is debited with Rs 3,000.00 ... Info: ATM-CASH WDL-BANGALORE"
+  let amount: number | null = null;
+  let account: string | null = null;
+
+  let m = body.match(/(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+(?:has been |is |was )?(?:withdrawn|debited)[^.]*?\bA\/?c(?:count)?(?:\s*no\.?)?\s*(\w*\d{3,6})/i);
+  if (m) {
+    amount = parseAmount(m[1]);
+    account = m[2];
+  } else {
+    m = body.match(/\bA\/?c(?:count)?(?:\s*no\.?)?\s*(\w*\d{3,6})[^.]*?(?:withdrawn|debited)[^.]*?(?:Rs|INR)\.?\s*([\d,]+\.?\d*)/i);
+    if (m) {
+      amount = parseAmount(m[2]);
+      account = m[1];
+    } else {
+      // Card-based wording carries no account number, only the card.
+      m = body.match(/(?:Rs|INR)\.?\s*([\d,]+\.?\d*)/i);
+      if (m) {
+        amount = parseAmount(m[1]);
+        account = body.match(/\bcard\s+(?:ending|no\.?)\s*(?:XX)?\s*(\d{4})/i)?.[1] ?? null;
+      }
+    }
+  }
+  if (amount == null || amount <= 0) return null;
+
+  // Where: "at <PLACE>" / "Info: ATM-CASH WDL-<PLACE>" / "ATM <id>".
+  // The capture stops at "from"/"Avl Bal" so the account token that follows the
+  // location ("at SBI ATM S1NW12345 from A/c X4567") stays out of the name.
+  const candidates = [
+    body.match(/\bat\s+([A-Za-z0-9][^.,\n]{2,60}?)(?=\s+on\b|\s+from\b|\s+Avl\b|[.,\n]|$)/i)?.[1],
+    body.match(/Info\s*[:\-]\s*([^.,\n]{3,60})/i)?.[1],
+  ];
+  // "...on 12-09-2026 at 19:10:00" also reads as "at <something>", so drop a
+  // capture that is only a clock time or a date — it names no ATM.
+  const place = candidates.find((c) => c && !/^[\d:/\-\s]+$/.test(c.trim()));
+  const merchant = place?.trim().replace(/\s+/g, ' ') || 'ATM Withdrawal';
+
+  return {
+    amount,
+    direction: 'debit',
+    rawMerchant: merchant,
+    occurredAt: when,
+    accountLast4: account ? last4(account) : null,
+    instrument: 'atm',
+    referenceId,
+  };
+}
