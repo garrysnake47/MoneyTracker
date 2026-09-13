@@ -40,7 +40,7 @@ export default function ParserHealthPage() {
           <h1 className="h-page">Parser health</h1>
           <p className="text-sm text-muted">Unparsed emails are the discovery mechanism for new bank templates.</p>
         </div>
-        <button onClick={reparse} disabled={reparsing} className="w-full shrink-0 rounded-full bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60 sm:w-auto">
+        <button onClick={reparse} disabled={reparsing} className="btn-primary w-full shrink-0 whitespace-nowrap px-4 py-2 sm:w-auto">
           {reparsing ? 'Re-parsing…' : 'Re-parse pending'}
         </button>
       </header>

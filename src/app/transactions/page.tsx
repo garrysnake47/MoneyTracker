@@ -290,9 +290,13 @@ export default function TransactionsPage() {
               ]}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2.5 lg:flex lg:flex-1">
-            <input type="date" value={from} onChange={(e) => { setPage(1); setFrom(e.target.value); }} className="input lg:w-40" aria-label="From date" />
-            <input type="date" value={to} onChange={(e) => { setPage(1); setTo(e.target.value); }} className="input lg:w-40" aria-label="To date" />
+          {/* Two date fields side by side leave ~140px each below 360px, and
+              a native date input clips its own value at that width — the
+              picker glyph is drawn inside the box. Stack them until there is
+              room, and trim the padding the glyph would otherwise eat. */}
+          <div className="grid grid-cols-1 gap-2.5 xs:grid-cols-2 lg:flex lg:flex-1">
+            <input type="date" value={from} onChange={(e) => { setPage(1); setFrom(e.target.value); }} className="input px-3 lg:w-40" aria-label="From date" />
+            <input type="date" value={to} onChange={(e) => { setPage(1); setTo(e.target.value); }} className="input px-3 lg:w-40" aria-label="To date" />
           </div>
           {(merchant || categoryId || direction || from || to) && (
             <button
@@ -376,7 +380,7 @@ export default function TransactionsPage() {
                             single-row layout left the label and every capsule
                             sharing a ~53px column, so both were unreadable. */}
                         <div className="flex items-start gap-2">
-                          <div className="min-w-0 flex-1 truncate text-[15px] font-bold">{t.label}</div>
+                          <div className="min-w-0 flex-1 truncate pr-1 text-[15px] font-bold">{t.label}</div>
                           <div className={`shrink-0 text-right text-[15px] font-extrabold tabular sm:hidden ${t.direction === 'debit' ? 'text-debit' : 'text-credit'}`}>
                             {t.direction === 'debit' ? '−' : '+'}{inr(t.amount)}
                           </div>

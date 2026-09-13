@@ -31,7 +31,7 @@ export default function BudgetWidget({ month }: { month: string }) {
   }, [month]);
 
   return (
-    <section className="card lift p-5">
+    <section className="card lift p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold">Budgets</h2>
         <Link href="/budget" className="text-xs text-accent">Manage →</Link>

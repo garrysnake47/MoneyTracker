@@ -115,7 +115,7 @@ export default function InstallApp({ className = '', label = 'Install app' }: { 
       {help && createPortal(
         <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center sm:p-4" role="dialog" aria-modal="true" aria-label={guide.title}>
           <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setHelp(false)} />
-          <div className="relative max-h-[90vh] w-full overflow-y-auto card p-5 rounded-b-none sm:max-w-md sm:rounded-3xl animate-fade-in">
+          <div className="relative max-h-[90vh] w-full overflow-y-auto card p-4 sm:p-5 rounded-b-none sm:max-w-md sm:rounded-3xl animate-fade-in">
             <div className="flex items-start gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-amber text-[rgb(var(--ink))] text-lg font-bold">₹</div>
               <div className="min-w-0">

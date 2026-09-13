@@ -33,7 +33,7 @@ export default function SubsWidget() {
   const active = subs.filter((s) => s.status === 'active' || s.status === 'price_changed').slice(0, 4);
 
   return (
-    <section className="card lift p-5">
+    <section className="card lift p-4 sm:p-5">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-[15px] font-bold">Recurring</h2>
         <Link href="/subscriptions" className="text-xs font-semibold text-accent hover:underline">

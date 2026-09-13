@@ -54,7 +54,7 @@ export default function TrackedBanks() {
   }
 
   return (
-    <section className="card p-5 space-y-4">
+    <section className="card p-4 sm:p-5 space-y-4">
       <div>
         <h2 className="text-[15px] font-bold">Tracked bank emails</h2>
         <p className="text-xs text-muted">These sender addresses are scanned in your Gmail. Add your bank if it isn’t listed.</p>

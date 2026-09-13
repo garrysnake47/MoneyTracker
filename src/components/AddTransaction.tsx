@@ -65,41 +65,43 @@ export default function AddTransaction({ onAdded, onClose }: { onAdded: () => vo
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={onClose}>
-      <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl border border-border bg-surface p-5 shadow-card space-y-3" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet w-full space-y-3 rounded-t-3xl border border-border bg-surface p-4 sm:p-5 shadow-card sm:max-w-md sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h2 className="text-base font-semibold">Add transaction</h2>
-          <button onClick={onClose} className="text-muted text-xl leading-none">×</button>
+          <button onClick={onClose} aria-label="Close" className="icon-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          </button>
         </div>
 
         {/* Income / Expense toggle */}
-        <div className="inline-flex w-full rounded-lg border border-border bg-surface-2 p-0.5 text-sm">
-          <button onClick={() => setDirection('debit')} className={`flex-1 py-1.5 rounded-md ${direction === 'debit' ? 'bg-surface shadow-sm font-medium text-debit' : 'text-muted'}`}>
+        <div className="inline-flex w-full rounded-full border border-border bg-surface-2 p-0.5 text-sm">
+          <button onClick={() => setDirection('debit')} className={`flex-1 rounded-full py-2 ${direction === 'debit' ? 'bg-surface shadow-sm font-medium text-debit' : 'text-muted'}`}>
             Expense
           </button>
-          <button onClick={() => setDirection('credit')} className={`flex-1 py-1.5 rounded-md ${direction === 'credit' ? 'bg-surface shadow-sm font-medium text-credit' : 'text-muted'}`}>
+          <button onClick={() => setDirection('credit')} className={`flex-1 rounded-full py-2 ${direction === 'credit' ? 'bg-surface shadow-sm font-medium text-credit' : 'text-muted'}`}>
             Income
           </button>
         </div>
 
         <div>
           <label className="block text-xs text-muted mb-1">Amount (₹)</label>
-          <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" autoFocus className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm tabular" />
+          <input value={amount} onChange={(e) => setAmount(e.target.value)} inputMode="decimal" placeholder="0.00" autoFocus className="input tabular" />
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 xs:grid-cols-2">
           <div>
             <label className="block text-xs text-muted mb-1">Date</label>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm" />
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input" />
           </div>
           <div>
             <label className="block text-xs text-muted mb-1">Time</label>
-            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm" />
+            <input type="time" value={time} onChange={(e) => setTime(e.target.value)} className="input" />
           </div>
         </div>
 
         <div>
           <label className="block text-xs text-muted mb-1">Description</label>
-          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={direction === 'credit' ? 'e.g. Freelance payment' : 'e.g. Groceries'} className="w-full rounded-md border border-border bg-surface-2 px-2 py-2 text-sm" />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder={direction === 'credit' ? 'e.g. Freelance payment' : 'e.g. Groceries'} className="input" />
         </div>
 
         <div>
@@ -117,7 +119,7 @@ export default function AddTransaction({ onAdded, onClose }: { onAdded: () => vo
 
         {error && <div className="text-xs text-debit">{error}</div>}
 
-        <button onClick={submit} disabled={busy} className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white disabled:opacity-60">
+        <button onClick={submit} disabled={busy} className="btn-primary w-full py-3">
           {busy ? 'Saving…' : `Add ${direction === 'credit' ? 'income' : 'expense'}`}
         </button>
       </div>

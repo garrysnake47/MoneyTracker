@@ -209,3 +209,40 @@ h1, h2, h3 { letter-spacing: -0.022em; font-weight: 700; }
   .lift, .btn { transition: none; }
   .lift:hover { transform: none; }
 }
+
+/* ── Phones ─────────────────────────────────────────────────────────────────
+   Two viewport rules that the desktop layout never exercises but that break
+   the app badly on a real handset.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* 1. Safari zooms the whole page in whenever a focused form control is under
+      16px, and it does not zoom back out. Every input here is text-sm (14px),
+      so tapping any field left the layout scaled up and scrolled sideways —
+      which is what "the buttons go off the screen" actually was. Only touch
+      devices need this; the selector outweighs the utility classes that set
+      the smaller size. Checkboxes and radios have no text to scale. */
+@media (pointer: coarse) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/* 2. viewportFit: 'cover' (see layout.tsx) runs the page under the notch, so
+      a landscape phone puts the left gutter behind it. The body already pads
+      the bottom for the home indicator; these do the sides. */
+.px-safe {
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+/* Bottom sheets: clear the home indicator, and never grow past the viewport —
+   an overlong form used to push its submit button off-screen with nothing to
+   scroll. */
+.sheet {
+  max-height: min(88vh, 100dvh - 1rem);
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}

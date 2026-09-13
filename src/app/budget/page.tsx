@@ -94,7 +94,7 @@ export default function BudgetPage() {
       </Reveal>
 
       {/* Add budget */}
-      <Reveal className="card relative z-30 p-5" delay={40}>
+      <Reveal className="card relative z-30 p-4 sm:p-5" delay={40}>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
           <div>
             <label className="block text-xs text-muted mb-1.5">Category</label>
@@ -109,14 +109,14 @@ export default function BudgetPage() {
             <label className="block text-xs text-muted mb-1.5">Monthly budget (₹)</label>
             <input value={amount} onChange={(e) => setAmount(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && add()} inputMode="decimal" placeholder="e.g. 15000" className="input tabular" />
           </div>
-          <button onClick={add} disabled={busy} className="btn-primary h-[42px] w-full sm:w-auto">Add budget</button>
+          <button onClick={add} disabled={busy} className="btn-primary h-[42px] w-full whitespace-nowrap sm:w-auto">Add budget</button>
         </div>
         {msg && <div className="mt-3 text-xs text-debit">{msg}</div>}
       </Reveal>
 
       {/* Budget list */}
       {budgets.length === 0 ? (
-        <Reveal className="card p-8 text-center text-muted" delay={80}>
+        <Reveal className="card p-6 sm:p-8 text-center text-muted" delay={80}>
           No budgets yet. Add one above — try <span className="font-medium text-text">Food</span> or <span className="font-medium text-text">SIP</span>.
         </Reveal>
       ) : (
@@ -135,13 +135,21 @@ export default function BudgetPage() {
                 <div className="h-2.5 rounded-full bg-surface-2 overflow-hidden">
                   <div className={`h-full rounded-full transition-all duration-500 ${barColor(pct)}`} style={{ width: `${Math.min(100, pct)}%` }} />
                 </div>
-                <div className="mt-2 flex items-center justify-between">
+                {/* Stacks below xs: the caption plus an open editor never fit
+                    one 320px row — the text wrapped to three lines and the
+                    input, Save and Remove were crushed together. */}
+                <div className="mt-2 flex flex-col gap-2 xs:flex-row xs:items-center xs:justify-between">
                   <div className="text-xs text-muted">
                     {pct}% used{pct >= 100 ? ` · over by ${inr(b.spent - b.budget)}` : ` · ${inr(Math.max(0, b.budget - b.spent))} left`}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <BudgetEdit current={b.budget} onSave={(amt) => save(b.categoryId, amt)} />
-                    <button onClick={() => save(b.categoryId, 0)} className="text-xs text-muted hover:text-debit">Remove</button>
+                    <button
+                      onClick={() => save(b.categoryId, 0)}
+                      className="btn-ghost px-3 py-1.5 text-xs hover:text-debit"
+                    >
+                      Remove
+                    </button>
                   </div>
                 </div>
               </Reveal>
@@ -156,11 +164,29 @@ export default function BudgetPage() {
 function BudgetEdit({ current, onSave }: { current: number; onSave: (amt: number) => void }) {
   const [editing, setEditing] = useState(false);
   const [val, setVal] = useState(String(current));
-  if (!editing) return <button onClick={() => { setVal(String(current)); setEditing(true); }} className="text-xs text-accent">Edit</button>;
+  if (!editing) {
+    return (
+      <button onClick={() => { setVal(String(current)); setEditing(true); }} className="btn-ghost px-3 py-1.5 text-xs hover:text-text">
+        Edit
+      </button>
+    );
+  }
   return (
-    <span className="inline-flex items-center gap-1">
-      <input value={val} onChange={(e) => setVal(e.target.value)} inputMode="decimal" className="w-24 rounded-md border border-border bg-surface px-2 py-1 text-xs tabular" />
-      <button onClick={() => { onSave(Number(val) || 0); setEditing(false); }} className="text-xs text-accent font-medium">Save</button>
+    // min-w-0 + a flexible input so the field shrinks with the row instead of
+    // forcing it wider than the card on a narrow phone.
+    <span className="flex min-w-0 flex-1 items-center gap-1.5">
+      <input
+        value={val}
+        onChange={(e) => setVal(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') { onSave(Number(val) || 0); setEditing(false); } }}
+        inputMode="decimal"
+        autoFocus
+        aria-label="Monthly budget"
+        className="input min-w-0 flex-1 px-3 py-1.5 text-xs tabular xs:w-24 xs:flex-none"
+      />
+      <button onClick={() => { onSave(Number(val) || 0); setEditing(false); }} className="btn-primary shrink-0 px-3 py-1.5 text-xs">
+        Save
+      </button>
     </span>
   );
 }

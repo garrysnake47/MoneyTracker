@@ -300,7 +300,7 @@ export default function LandingPage() {
         <div className="mt-10 space-y-3">
           {FAQ.map((f, i) => (
             <Reveal key={f.q} delay={i * 60}>
-              <details className="card group p-5 open:shadow-lg transition-shadow">
+              <details className="card group p-4 sm:p-5 open:shadow-lg transition-shadow">
                 <summary className="flex cursor-pointer items-center gap-4 list-none font-semibold">
                   {f.q}
                   <span className="ml-auto shrink-0 text-muted transition-transform duration-300 group-open:rotate-45 text-xl leading-none">+</span>
@@ -315,7 +315,7 @@ export default function LandingPage() {
       {/* ── Closing CTA ──────────────────────────────────────────────────── */}
       <section className="mx-auto max-w-6xl px-5 pb-20">
         <Reveal>
-          <div className="card-ink relative overflow-hidden p-8 text-center sm:p-12 lg:p-16">
+          <div className="card-ink relative overflow-hidden p-6 text-center sm:p-12 lg:p-16">
             <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-[rgb(var(--amber))]/12 animate-float-slow" aria-hidden />
             <div className="absolute -left-20 -bottom-24 h-72 w-72 rounded-full bg-white/[0.04]" aria-hidden />
             <h2 className="relative text-[clamp(1.6rem,5.5vw,3rem)] font-extrabold tracking-tight">
@@ -467,7 +467,7 @@ function MailToLedger() {
   return (
     <div className="relative">
       {/* Inbox alert */}
-      <div className="card p-5">
+      <div className="card p-4 sm:p-5">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl text-xs font-bold text-white" style={{ background: '#004C8F' }}>H</span>
           <div className="min-w-0">
@@ -491,7 +491,7 @@ function MailToLedger() {
       </div>
 
       {/* Resulting ledger row */}
-      <div className="card p-5">
+      <div className="card p-4 sm:p-5">
         <div className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-full bg-blush text-sm font-bold text-[rgb(var(--debit))]">S</span>
           <div className="min-w-0 flex-1">

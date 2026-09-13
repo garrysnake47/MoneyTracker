@@ -142,11 +142,11 @@ export default function OverviewPage() {
 
           {/* Week-wise category spend + health */}
           <Reveal className="grid grid-cols-1 md:grid-cols-3 gap-4" delay={40}>
-            <section className="card lift md:col-span-2 p-5">
+            <section className="card lift md:col-span-2 p-4 sm:p-5">
               <h2 className="text-[15px] font-bold mb-3">Week-wise category spend · {monthLabel(month)}</h2>
               <CategoryWeekChart data={data.weekly} />
             </section>
-            <section className="card lift p-5 flex flex-col">
+            <section className="card lift p-4 sm:p-5 flex flex-col">
               <h2 className="text-[15px] font-bold mb-3">Savings health</h2>
               <div className="flex-1 flex items-center justify-center">
                 <HealthGauge income={data.totalMoneyIn} spend={data.accountOutflow} />
@@ -156,7 +156,7 @@ export default function OverviewPage() {
 
           {/* Category (50%) + Recent activity (50%) — single row */}
           <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-4" delay={40}>
-            <section className="card lift p-5">
+            <section className="card lift p-4 sm:p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-[15px] font-bold">{pieView === 'expense' ? 'Spend by category' : 'Income by source'}</h2>
                 <div className="inline-flex rounded-full border border-border bg-surface-2 p-0.5 text-sm">
@@ -173,7 +173,7 @@ export default function OverviewPage() {
           {/* Budget (50%) + Top merchants (50%) */}
           <Reveal className="grid grid-cols-1 md:grid-cols-2 gap-4" delay={40}>
             <BudgetWidget month={month} />
-            <section className="card lift p-5">
+            <section className="card lift p-4 sm:p-5">
               <h2 className="text-[15px] font-bold mb-3">Top merchants</h2>
               {data.topMerchants.length === 0 ? (
                 <p className="text-sm text-muted">Nothing yet.</p>
@@ -251,7 +251,7 @@ const TONES: Record<string, { card: string; tile: string; label: string; value: 
 function KpiCard({ label, value, children, tone, icon, delay = 0 }: { label: string; value: string; children?: React.ReactNode; tone: keyof typeof TONES | string; icon: string; delay?: number }) {
   const t = TONES[tone] ?? TONES.sky;
   return (
-    <div className={`lift animate-pop relative overflow-hidden rounded-3xl p-5 ${t.card}`} style={{ animationDelay: `${delay}ms` }}>
+    <div className={`lift animate-pop relative overflow-hidden rounded-3xl p-4 sm:p-5 ${t.card}`} style={{ animationDelay: `${delay}ms` }}>
       {tone === 'ink' && <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/[0.06]" aria-hidden />}
       <div className="relative flex items-center justify-between">
         <div className={`text-[11px] sm:text-xs font-semibold uppercase tracking-wide ${t.label}`}>{label}</div>
