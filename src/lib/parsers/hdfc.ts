@@ -133,7 +133,7 @@ export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
     }
   }
 
-  // ── Card transaction — two known orderings ───────────────────────────────
+  // ── Card transaction — four known orderings ──────────────────────────────
   // (a) "...spent on Card ending 4471 at MERCHANT on ..."  [amount, last4, merchant]
   let card = body.match(/(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+(?:has been|is|was)?\s*(?:spent|used).*?Card\s+(?:ending|no\.?\s*(?:XX)?)\s*(\d{4})\s+(?:at|towards)\s+(.+?)\s+on\b/i);
   let cardAmount: string | undefined, cardLast4: string | undefined, cardMerchant: string | undefined;
@@ -142,6 +142,28 @@ export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
   } else {
     // (b) "Card ending 4471 for Rs.X at MERCHANT on ..."  [last4, amount, merchant]
     card = body.match(/Card ending\s*(\d{4})\s+for\s+(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+at\s+(.+?)\s+on\b/i);
+    if (card) [, cardLast4, cardAmount, cardMerchant] = card;
+  }
+  if (!card) {
+    // (c) Debit card purchase: "Rs.799.00 is debited from your HDFC Bank Debit
+    //     Card ending 6926 at ZEE ENTERTAINMENT on 11 Jun, 2026 at 22:37:53."
+    //     (a) demands "spent"/"used", which this shape never says, so every
+    //     debit-card purchase was landing in parser-health instead of the
+    //     ledger. "from your …Card" is matched across word characters only, so
+    //     it cannot leap a sentence into the "BLOCK DEBIT CARD 6926" footer.
+    card = body.match(
+      /(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+(?:has been|is|was)?\s*debited from your\s+[\w ]*?Card\s+(?:ending|no\.?\s*(?:XX)?)\s*(\d{4})\s+(?:at|towards)\s+(.+?)\s+on\b/i,
+    );
+    if (card) [, cardAmount, cardLast4, cardMerchant] = card;
+  }
+  if (!card) {
+    // (d) Credit card alert: "Thank you for using your HDFC Bank Credit Card
+    //     ending in 7856 .You made a transaction of Rs. 720.00 at RAZ*Swiggy
+    //     on 12-07-2026 17:58:49". Card first, amount second, and "ending in"
+    //     rather than "ending" — none of the above reach it.
+    card = body.match(
+      /Card\s+ending(?:\s+in)?\s*(\d{4})\s*\.?\s*You made a transaction of\s+(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+at\s+(.+?)\s+on\b/i,
+    );
     if (card) [, cardLast4, cardAmount, cardMerchant] = card;
   }
   if (cardAmount && cardLast4 && cardMerchant) {

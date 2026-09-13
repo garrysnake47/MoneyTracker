@@ -49,3 +49,21 @@ describe('merchant normalization (§6)', () => {
     expect(out).not.toContain('503412345678');
   });
 });
+
+/**
+ * Aggregator descriptors invert the usual star convention: the aggregator is
+ * the prefix and the merchant is the suffix, so stripping after the star (as
+ * SWIGGY*ORDER12345 needs) filed every Razorpay charge under "RAZ".
+ */
+describe('payment-aggregator prefixes', () => {
+  it('keeps the merchant, drops the aggregator', () => {
+    expect(normalizeMerchant('RAZ*Swiggy')).toBe('SWIGGY');
+    expect(normalizeMerchant('PAYU*Myntra')).toBe('MYNTRA');
+    expect(normalizeMerchant('CCAV*BookMyShow')).toBe('BOOKMYSHOW');
+    expect(normalizeMerchant('RAZORPAY*Zomato')).toBe('ZOMATO');
+  });
+
+  it('still strips an order ref after a real merchant', () => {
+    expect(normalizeMerchant('SWIGGY*ORDER12345')).toBe('SWIGGY');
+  });
+});

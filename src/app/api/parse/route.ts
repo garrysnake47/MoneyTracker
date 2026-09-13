@@ -10,9 +10,12 @@ export const maxDuration = 60;
 export async function POST(req: NextRequest) {
   const userId = await requireUser(req);
   if (userId instanceof NextResponse) return userId;
+  // ?retryUnparsed=1 gives mail that matched no template another go, for after
+  // a parser fix — otherwise those emails are stranded (see runParsePass).
+  const retryUnparsed = req.nextUrl.searchParams.get('retryUnparsed') === '1';
   try {
     const result = await withSyncLock(userId, async () => {
-      const parse = await runParsePass(userId);
+      const parse = await runParsePass(userId, 500, { retryUnparsed });
       const dedupe = await dedupeTransactions(userId, { sinceDays: 120 });
       return { ...parse, dedupe };
     });

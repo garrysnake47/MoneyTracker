@@ -54,6 +54,14 @@ export function normalizeMerchant(raw: string): string {
 
   let s = raw.toUpperCase();
 
+  // 4b. Payment-aggregator descriptors put the aggregator first and the real
+  // merchant after the star: "RAZ*Swiggy", "PAYU*Myntra", "CCAV*BookMyShow".
+  // The generic strip below assumes the opposite (SWIGGY*ORDER12345), so
+  // without this a card charge through Razorpay was filed under "RAZ" — every
+  // such merchant collapsing into one meaningless row in the history.
+  const viaAggregator = s.match(/^(?:RAZ|RAZORPAY|PAYU|PAYUBIZ|CCAV|CCAVENUE|BD|BILLDESK|PYTM|INSTAMOJO)\*+\s*(.+)$/);
+  if (viaAggregator) s = viaAggregator[1].trim();
+
   // 5. Strip everything after * or @ where it looks like an order ref / VPA suffix.
   s = s.replace(/[*@][A-Z0-9._-]+/g, ' ');
 
