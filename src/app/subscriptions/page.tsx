@@ -85,14 +85,22 @@ export default function SubscriptionsPage() {
       {adding && <AddSubscription onAdded={load} onClose={() => setAdding(false)} />}
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Subscriptions</h1>
+          <h1 className="h-page">Subscriptions</h1>
           <p className="text-sm text-muted">Recurring payments detected from your history.</p>
         </div>
+        {/* Each button keeps its label on one line and takes an equal share of
+            a narrow row; at 320px the pair used to break mid-word. */}
         <div className="flex items-center gap-2">
-          <button onClick={() => setAdding(true)} className="rounded-xl border border-border px-3.5 py-2 text-sm font-semibold">
-            + Add subscription
+          <button
+            onClick={() => setAdding(true)}
+            className="btn-outline flex-1 whitespace-nowrap px-3.5 py-2 sm:flex-none"
+          >
+            <Icon name="plus" size={15} />
+            {/* One span, so the flex gap doesn't double up with JSX's own
+                whitespace between "Add" and the conditional word. */}
+            <span>Add<span className="hidden min-[360px]:inline"> subscription</span></span>
           </button>
-          <button onClick={detect} disabled={detecting} className="btn-primary">
+          <button onClick={detect} disabled={detecting} className="btn-primary flex-1 whitespace-nowrap px-4 py-2 sm:flex-none">
             <Icon name="repeat" size={15} /> {detecting ? 'Detecting…' : 'Re-detect'}
           </button>
         </div>
@@ -100,7 +108,7 @@ export default function SubscriptionsPage() {
 
       {/* Headline: normalized monthly total, plus the two counts worth knowing. */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div className="card-hero animate-pop p-5 sm:col-span-2">
+        <div className="card-hero animate-pop p-4 sm:p-5 sm:col-span-2">
           <div className="absolute -right-10 -top-12 h-36 w-36 rounded-full bg-white/[0.07]" aria-hidden />
           <div className="relative flex items-center justify-between">
             <div className="text-[11px] font-semibold uppercase tracking-wide text-white/70 sm:text-xs">
@@ -112,7 +120,7 @@ export default function SubscriptionsPage() {
           <div className="relative mt-1 text-xs font-medium text-white/70">Annual ÷ 12, quarterly ÷ 3, plus monthlies.</div>
         </div>
         <div
-          className="card-tinted animate-pop p-5"
+          className="card-tinted animate-pop p-4 sm:p-5"
           style={{ ['--tone-soft' as string]: '#E2F1EA', ['--tone-border' as string]: '#2A8A6933', animationDelay: '70ms' }}
         >
           <div className="flex items-center justify-between">
@@ -207,8 +215,8 @@ export default function SubscriptionsPage() {
                   </div>
 
                   {/* Amount + status + action */}
-                  <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
-                    <div className={`text-[15px] font-extrabold tabular ${dismissed ? 'text-muted line-through' : ''}`}>
+                  <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0 sm:gap-3 sm:justify-end">
+                    <div className={`shrink-0 text-[15px] font-extrabold tabular ${dismissed ? 'text-muted line-through' : ''}`}>
                       {inr(s.medianAmount)}
                     </div>
                     <span

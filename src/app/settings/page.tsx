@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { fmtDateTime } from '@/lib/format';
 import CredentialsForm from '@/components/CredentialsForm';
 import CategoryManager from '@/components/CategoryManager';
+import SmsIngest from '@/components/SmsIngest';
 
 interface Status {
   gmail: { connected: boolean; email: string | null };
@@ -58,7 +59,7 @@ function SettingsInner() {
 
   return (
     <div className="space-y-5">
-      <h1 className="text-[28px] font-extrabold">Settings</h1>
+      <h1 className="h-page">Settings</h1>
 
       {gmailOk && <div className="rounded-lg border border-credit/40 bg-credit/5 p-3 text-sm text-credit">✓ Gmail connected.</div>}
       {gmailError && (
@@ -75,6 +76,9 @@ function SettingsInner() {
 
       {/* Category management */}
       <CategoryManager />
+
+      {/* Bank SMS forwarding (the mobile counterpart to Gmail sync) */}
+      <SmsIngest />
 
       {/* Gmail */}
       <section className="rounded-2xl border border-border bg-surface p-4 space-y-2">

@@ -4,7 +4,11 @@ import { SESSION_COOKIE, verifySession } from '@/lib/auth';
 // Reachable without a session. EXACT is matched whole ('/' must never be
 // treated as a prefix, or every route would be public); PREFIX matches subpaths.
 const PUBLIC_EXACT = ['/', '/manifest.json', '/sw.js'];
-const PUBLIC_PREFIX = ['/login', '/signup', '/api/login', '/api/signup', '/api/logout', '/icons'];
+// '/api/ingest/sms' authenticates itself with a per-user bearer token — the
+// caller is a phone automation with no session cookie — so it must bypass the
+// cookie gate here, and is NOT unauthenticated. Named exactly, never as the
+// '/api/ingest' prefix, so sibling routes under it stay behind the session.
+const PUBLIC_PREFIX = ['/login', '/signup', '/api/login', '/api/signup', '/api/logout', '/icons', '/api/ingest/sms'];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

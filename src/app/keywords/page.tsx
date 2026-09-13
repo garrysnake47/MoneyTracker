@@ -95,7 +95,7 @@ export default function KeywordsPage() {
   return (
     <div className="space-y-5">
       <header className="animate-fade-up">
-        <h1 className="text-[28px] font-extrabold tracking-tight">Keywords</h1>
+        <h1 className="h-page">Keywords</h1>
         <p className="text-sm text-muted mt-1">
           Map keywords to categories. If a transaction’s merchant contains the keyword, it’s filed automatically —
           e.g. <span className="font-semibold text-text">hotel, restaurant, bar</span> → Food.
@@ -103,7 +103,7 @@ export default function KeywordsPage() {
       </header>
 
       {/* Add form — category and subcategory in one dropdown. */}
-      <section className="card animate-fade-up relative z-30 p-5" style={{ animationDelay: '60ms' }}>
+      <section className="card animate-fade-up relative z-30 p-4 sm:p-5" style={{ animationDelay: '60ms' }}>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex-1">
             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wide text-muted">Keyword</label>
@@ -162,14 +162,14 @@ export default function KeywordsPage() {
                 <Icon name={decor[0]} size={80} className="opacity-[0.13]" strokeWidth={1} />
               </div>
 
-              <div className="relative p-5 pl-6">
+              <div className="relative p-4 pl-5 sm:p-5 sm:pl-6">
                 <div className="flex items-center gap-3">
                   <span className="tile h-12 w-12 shrink-0 text-white shadow-sm" style={{ background: st.solid }}>
                     <Icon name={st.icon} size={22} />
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <h2 className="text-xl font-extrabold tracking-tight" style={{ color: st.ink }}>{cat}</h2>
+                      <h2 className="h-section" style={{ color: st.ink }}>{cat}</h2>
                       <span
                         className="rounded-full px-2.5 py-0.5 text-xs font-bold text-white"
                         style={{ background: st.solid }}
@@ -183,12 +183,12 @@ export default function KeywordsPage() {
 
                 {/* Chips sit on their own panel so they stay legible over the
                     tint and the watermark behind the card. */}
-                <div className="mt-4 rounded-2xl bg-surface-2/60 p-3">
+                <div className="mt-4 rounded-2xl bg-surface-2/60 p-2 sm:p-3">
                   <div className="flex flex-wrap gap-2">
                     {list.map((r) => (
                       <span
                         key={r.id}
-                        className="group inline-flex items-center gap-2 rounded-full bg-surface py-1.5 pl-3 pr-1.5 text-sm font-bold transition-all hover:-translate-y-px"
+                        className="group inline-flex items-center gap-1.5 rounded-full bg-surface py-1.5 pl-2.5 pr-1.5 text-[13px] font-bold transition-all hover:-translate-y-px sm:gap-2 sm:pl-3 sm:text-sm"
                         style={{ color: st.ink, boxShadow: `inset 0 0 0 1.5px ${st.solid}33, 0 1px 2px rgb(26 28 31 / 0.05)` }}
                       >
                         <Icon name={st.icon} size={13} style={{ color: st.solid }} />

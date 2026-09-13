@@ -40,7 +40,7 @@ export default function RecentTransactions({ month }: { month: string }) {
   }, [month]);
 
   return (
-    <section className="card lift p-5">
+    <section className="card lift p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[15px] font-bold">Recent activity</h2>
         <Link href="/transactions" className="text-xs font-semibold text-accent hover:underline">

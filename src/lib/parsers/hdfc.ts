@@ -1,4 +1,4 @@
-import { EmailInput, ParseResult, Parser, ignoredReason, last4, parseAmount, parseDateTime } from './types';
+import { EmailInput, ParseResult, Parser, atmWithdrawal, ignoredReason, last4, parseAmount, parseDateTime } from './types';
 
 /**
  * HDFC Bank "InstaAlerts" templates (alerts@hdfcbank.bank.in), plus older
@@ -69,6 +69,12 @@ export const hdfcParser: Parser = (email: EmailInput): ParseResult => {
   const body = (email.bodyText || '').replace(/\s+/g, ' ');
   const when = parseDateTime(body, email.receivedAt);
   const ref = body.match(/UPI transaction reference no\.?:?\s*(\w+)/i)?.[1] ?? body.match(/reference number is\s*(\w+)/i)?.[1] ?? null;
+
+  // ── ATM cash withdrawal ──────────────────────────────────────────────────
+  // Checked before the UPI/card templates: a withdrawal names no payee, so
+  // none of them can match it and it would otherwise fall through unparsed.
+  const cash = atmWithdrawal(body, when, ref);
+  if (cash) return { status: 'parsed', txn: cash };
 
   // ── InstaAlerts UPI debit ────────────────────────────────────────────────
   let m = body.match(

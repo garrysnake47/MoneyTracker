@@ -79,7 +79,7 @@ export default function AuthShell({
 
           <div className="animate-fade-up">
             <span className="chip bg-sky text-[rgb(var(--peri-2))]">{eyebrow}</span>
-            <h1 className="mt-3 text-[28px] font-extrabold leading-tight tracking-tight">{title}</h1>
+            <h1 className="h-page mt-3 leading-tight">{title}</h1>
             <p className="mt-2 text-sm text-muted">{subtitle}</p>
           </div>
 

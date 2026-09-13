@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import Icon from './Icon';
 import { categoryStyle } from '@/lib/palette';
-import type { CategoryOpt } from '@/lib/useCategories';
+import { categoriesForSide, type CategoryOpt } from '@/lib/useCategories';
 
 /**
  * Shared dropdown shell. Every dropdown on the site renders through this, so
@@ -239,7 +239,7 @@ export function CategoryDropdown({
   className?: string;
 }) {
   const [expanded, setExpanded] = useState<number | null>(null);
-  const visible = side ? categories.filter((c) => (side === 'income' ? !c.isExpense : c.isExpense)) : categories;
+  const visible = side ? categoriesForSide(categories, side) : categories;
 
   const cat = categories.find((c) => c.id === value.categoryId);
   const sub = cat?.subcategories.find((s) => s.id === value.subcategoryId);

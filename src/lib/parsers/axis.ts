@@ -1,4 +1,4 @@
-import { EmailInput, ParseResult, Parser, ignoredReason, last4, parseAmount, parseDateTime } from './types';
+import { EmailInput, ParseResult, Parser, atmWithdrawal, ignoredReason, last4, parseAmount, parseDateTime } from './types';
 
 /**
  * Axis Bank alert templates.
@@ -12,6 +12,13 @@ export const axisParser: Parser = (email: EmailInput): ParseResult => {
 
   const body = email.bodyText || '';
   const when = parseDateTime(body, email.receivedAt);
+
+  // ── ATM cash withdrawal ──────────────────────────────────────────────────
+  // The generic debit template below does match "Info: ATM-WDL/...", but files
+  // it as netbanking with the raw Info string as the merchant. Run this first
+  // so a withdrawal is recorded as one.
+  const cash = atmWithdrawal(body, when, null);
+  if (cash) return { status: 'parsed', txn: cash };
 
   let m = body.match(/(?:Rs|INR)\.?\s*([\d,]+\.?\d*)\s+debited from A\/c(?:\s*no\.?)?\s*(\w*\d{2,4}).*?Info:\s*(.+?)[.\n]/i);
   if (m) {

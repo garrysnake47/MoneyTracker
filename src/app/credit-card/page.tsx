@@ -147,7 +147,7 @@ export default function CreditCardPage() {
     <div className="space-y-5 pt-1">
       <header className="relative z-30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Credit card</h1>
+          <h1 className="h-page">Credit card</h1>
           <p className="text-sm text-muted">Card charges count as spend but don’t leave your account until you pay the bill.</p>
         </div>
         <Select
@@ -161,7 +161,7 @@ export default function CreditCardPage() {
 
       {/* Headline: what went on the card this month */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="card-hero animate-pop p-5 sm:col-span-2">
+        <div className="card-hero animate-pop p-4 sm:p-5 sm:col-span-2">
           <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/[0.07]" aria-hidden />
           <div className="relative flex items-center justify-between">
             <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-white/70">Charged this month</div>
@@ -172,7 +172,7 @@ export default function CreditCardPage() {
             {refunds > 0 ? `${inr(refunds)} refunded · net ${inr(charges - refunds)}` : `${txns.length} transaction${txns.length === 1 ? '' : 's'}`}
           </div>
         </div>
-        <div className="card-tinted animate-pop p-5" style={{ ['--tone-soft' as string]: '#EEEAF8', ['--tone-border' as string]: '#8095F240', animationDelay: '70ms' }}>
+        <div className="card-tinted animate-pop p-4 sm:p-5" style={{ ['--tone-soft' as string]: '#EEEAF8', ['--tone-border' as string]: '#8095F240', animationDelay: '70ms' }}>
           <div className="flex items-center justify-between">
             <div className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted">Cards</div>
             <span className="tile h-9 w-9 bg-lilac text-[rgb(var(--peri-2))]"><Icon name="receipt" size={16} /></span>
@@ -184,7 +184,7 @@ export default function CreditCardPage() {
 
       {/* Registry */}
       <Reveal delay={40}>
-        <section className="card p-5 space-y-4">
+        <section className="card p-4 sm:p-5 space-y-4">
           <div>
             <h2 className="text-[15px] font-bold">Your credit cards</h2>
             <p className="text-xs text-muted">
@@ -246,7 +246,7 @@ export default function CreditCardPage() {
 
       {/* This month's charges */}
       <Reveal delay={40}>
-        <section className="card p-5">
+        <section className="card p-4 sm:p-5">
           <h2 className="text-[15px] font-bold mb-3">Card transactions · {monthLabel(month)}</h2>
           {loading ? (
             <p className="text-sm text-muted py-6 text-center">Loading…</p>

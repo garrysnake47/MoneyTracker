@@ -86,7 +86,7 @@ export default function Nav() {
   return (
     <>
       {/* Mobile / tablet top bar with hamburger (< lg) */}
-      <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 flex items-center gap-3 px-4 border-b border-border bg-surface/95 backdrop-blur">
+      <div className="lg:hidden fixed top-0 inset-x-0 z-40 h-14 flex items-center gap-3 px-safe border-b border-border bg-surface/95 backdrop-blur">
         <button onClick={() => setOpen(true)} aria-label="Open menu" className="grid h-9 w-9 place-items-center rounded-full hover:bg-surface-2 text-text">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
         </button>
@@ -105,7 +105,9 @@ export default function Nav() {
       {open && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/50 animate-fade-in" onClick={() => setOpen(false)} />
-          <aside className="absolute left-0 inset-y-0 w-72 max-w-[82vw] bg-[rgb(var(--sidebar))] shadow-2xl rounded-r-[28px] animate-slide-in">
+          {/* Scrolls: nine links plus the footer don't fit a landscape phone,
+              and the notch eats the left edge under viewportFit: 'cover'. */}
+          <aside className="absolute left-0 inset-y-0 w-72 max-w-[82vw] overflow-y-auto bg-[rgb(var(--sidebar))] pl-[env(safe-area-inset-left)] shadow-2xl rounded-r-[28px] animate-slide-in">
             <button onClick={() => setOpen(false)} aria-label="Close menu" className="absolute top-4 right-3 grid h-8 w-8 place-items-center rounded-lg text-[rgb(var(--sidebar-muted))] hover:bg-white/10 hover:text-white">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
             </button>

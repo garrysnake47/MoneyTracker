@@ -152,6 +152,44 @@ first large backfill locally with `DATABASE_URL="<prod>" npm run sync`.
 
 ---
 
+## Bank SMS (Android)
+
+Your bank sends the same alert twice — email and SMS. Gmail sync covers the
+first; this covers the second, for transactions that never generate an email.
+
+**A web app cannot read the SMS inbox.** There is no such API in any browser,
+and on iOS no third-party app of any kind can do it. So the phone does that
+half: an automation app that holds `READ_SMS` forwards each bank alert to
+`POST /api/ingest/sms`, and from there it joins the same pipeline Gmail feeds —
+same parsers, same review queue, same de-duplication. Android only.
+
+Settings → **Bank SMS (Android)** shows your webhook URL, your ingest token and
+the exact MacroDroid/Tasker steps. In short:
+
+1. Install MacroDroid (or Tasker) and grant it SMS permission.
+2. Trigger: **SMS Received**, filtered to the bank sender headers listed in
+   Settings, so nothing personal ever leaves the phone.
+3. Action: **HTTP POST** the JSON `{"sender": "...", "text": "..."}` to your
+   `/api/ingest/sms`, with `Authorization: Bearer <your token>`.
+
+Notes:
+
+- The token is derived from `SESSION_SECRET`, not stored, so adding SMS needs
+  **no database migration**. Rotating `SESSION_SECRET` revokes every ingest
+  token (and every session) — that is the revocation path.
+- Ingest is idempotent on sender + minute + text, so a retry on a flaky
+  connection cannot create a second transaction.
+- A bank that sends *both* an email and an SMS for one purchase still yields
+  one transaction: §5.3 dedupe matches on amount + ±3 min + direction + last4,
+  regardless of which source each alert came from.
+- Unknown sender headers are rejected with `422` rather than stored, so a
+  misconfigured macro cannot fill the database with personal messages.
+- SMS templates differ from the email ones and live in
+  [src/lib/parsers/sms/](src/lib/parsers/sms/); anything unrecognised shows up
+  under **Parsers** instead of being dropped.
+
+---
+
 ## Install as a mobile app (PWA)
 
 Once deployed over HTTPS (Vercel gives you this):

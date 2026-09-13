@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { inr, fmtDateTime } from '@/lib/format';
-import { useCategories } from '@/lib/useCategories';
+import { useCategories, categoriesForSide } from '@/lib/useCategories';
 import CategoryEditor from '@/components/CategoryEditor';
 import CategoryPicker from '@/components/CategoryPicker';
 import Select, { monthOpts } from '@/components/Select';
@@ -66,8 +66,7 @@ export default function ReviewPage() {
     if (current) setSide(current.direction === 'credit' ? 'income' : 'expense');
   }, [current?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Income = the non-expense side of the taxonomy (Salary, Bonus, Extra, Transfers).
-  const visible = categories.filter((c) => (side === 'income' ? !c.isExpense : c.isExpense));
+  const visible = categoriesForSide(categories, side);
 
   const assign = useCallback(
     async (categoryId: number, subcategoryId?: number | null) => {
@@ -122,9 +121,11 @@ export default function ReviewPage() {
 
   return (
     <div className="space-y-4">
-      <header className="relative z-30 flex items-center justify-between animate-fade-up">
-        <div>
-          <h1 className="text-[28px] font-extrabold tracking-tight">Review queue</h1>
+      {/* Stacks on phones: the month picker's 11rem minimum plus Refresh
+          could not fit one 375px row, so the button spilled past the gutter. */}
+      <header className="relative z-30 flex flex-col gap-3 animate-fade-up sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="h-page">Review queue</h1>
           <p className="text-sm text-muted">{remaining} left this month · one keystroke per decision</p>
         </div>
         <div className="flex items-center gap-2">
@@ -133,9 +134,9 @@ export default function ReviewPage() {
             options={months}
             onChange={setMonth}
             align="right"
-            className="!w-auto min-w-[11rem] rounded-full"
+            className="!w-auto min-w-0 flex-1 rounded-full sm:min-w-[11rem] sm:flex-none"
           />
-          <button onClick={() => load(month)} className="btn-outline px-3 py-1.5">Refresh</button>
+          <button onClick={() => load(month)} className="btn-outline shrink-0 px-3 py-1.5">Refresh</button>
         </div>
       </header>
 

@@ -12,6 +12,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from './db';
 import { parseEmail } from './parsers';
+import { parseSms } from './parsers/sms';
 import { normalizeMerchant } from './merchant';
 import type { ParsedTxn } from './parsers/types';
 import { creditCardLast4s } from './creditCards';
@@ -95,13 +96,16 @@ export async function runParsePass(userId: number, limit = 500): Promise<ParsePa
   for (const email of pending) {
     res.processed++;
     try {
-      const result = parseEmail({
+      const input = {
         sender: email.sender,
         subject: email.subject,
         bodyText: email.bodyText,
         bodyHtml: email.bodyHtml,
         receivedAt: email.receivedAt,
-      });
+      };
+      // SMS rows share this table but carry a DLT header ("VM-HDFCBK") where
+      // an email carries a From: address, so the '@' decides the dispatch.
+      const result = email.sender.includes('@') ? parseEmail(input) : parseSms(input);
 
       if (result.status === 'ignored') {
         await prisma.rawEmail.update({ where: { id: email.id }, data: { parseStatus: 'ignored', parseError: null } });
