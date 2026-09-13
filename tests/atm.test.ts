@@ -118,3 +118,43 @@ describe('ATM withdrawal SMS', () => {
     expect(r.txn.rawMerchant).toBe('ATM Withdrawal');
   });
 });
+
+/**
+ * Wordings HDFC actually sends. The noun forms ("Cash Withdrawal", "ATM WDL")
+ * matched no debit verb at all, so those alerts came back unparsed.
+ */
+describe('real HDFC withdrawal SMS wordings', () => {
+  const cases: [string, string, number, string][] = [
+    ['card-based, ATM named',
+     'Rs.5000.00 withdrawn from HDFC Bank Card ending 6926 at HDFC BANK ATM on 2026-09-10:19:22:33. Avl Bal: Rs.12300.00',
+     5000, 'HDFC BANK ATM'],
+    ['account-based, bare "at ATM"',
+     'Dear Customer, Rs.10000.00 has been withdrawn from your A/c XX5427 at ATM on 10-09-26. Avl Bal Rs.66,800.13',
+     10000, 'ATM'],
+    ['noun form, no verb anywhere',
+     'Amt Sent Rs.3000.00 From HDFC Bank A/C x5427 Cash Withdrawal On 10-09-26 Ref 4455',
+     3000, 'ATM Withdrawal'],
+    ['ATM WDL shorthand',
+     'Rs 2000 debited from a/c **5427 on 10-09-26 ATM WDL KORAMANGALA. Avl bal Rs 5000',
+     2000, 'ATM Withdrawal'],
+  ];
+
+  for (const [name, text, amount, merchant] of cases) {
+    it(name, () => {
+      const r = sms('VM-HDFCBK', text);
+      expect(r.status).toBe('parsed');
+      if (r.status !== 'parsed') return;
+      expect(r.txn.amount).toBe(amount);
+      expect(r.txn.direction).toBe('debit');
+      expect(r.txn.instrument).toBe('atm');
+      // Never the account it came out of — that would name each withdrawal
+      // from one account differently.
+      expect(r.txn.rawMerchant).toBe(merchant);
+    });
+  }
+
+  it('still ignores a pure balance alert', () => {
+    const r = sms('VM-HDFCBK', 'Avl Bal in A/c XX5427 is Rs.12,300.00 as on 10-09-26.');
+    expect(r.status).toBe('ignored');
+  });
+});

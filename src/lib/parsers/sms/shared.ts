@@ -15,7 +15,7 @@ const AMOUNT = String.raw`(?:rs\.?|inr)\s*([\d,]+(?:\.\d{1,2})?)`;
 /** Non-transaction SMS: OTP, balance, promo, mandate notices. */
 export function smsIgnoredReason(text: string): string | null {
   const t = text.toLowerCase();
-  const movedMoney = /debited|credited|spent|withdrawn|paid|received/.test(t);
+  const movedMoney = /debited|credited|spent|withdraw(n|al)?|paid|received/.test(t);
 
   if (/\botp\b|one[- ]time password|verification code|do not share/.test(t)) return 'otp';
   if (/avl bal|available balance|a\/c balance|bal:/.test(t) && !movedMoney) return 'balance';
@@ -86,6 +86,27 @@ export function smsLast4(text: string): string | null {
 }
 
 /**
+ * The merchant to file a transaction under.
+ *
+ * A withdrawal names no counterparty, so "Unknown" was the merchant for every
+ * cash SMS that didn't spell out the ATM's location — and a list of "Unknown"
+ * rows tells you nothing. Name it for what it is instead; the seeded rules
+ * then file it under Transfers › Cash withdrawal.
+ *
+ * A withdrawal whose only "from"/"at" phrase is the account it came out of
+ * ("From HDFC Bank A/C x5427 Cash Withdrawal") gets the same treatment: the
+ * account is not a merchant, and keeping it would give every withdrawal from
+ * one account a different name.
+ */
+function merchantFor(text: string, instrument: Instrument): string {
+  const found = smsMerchant(text);
+  if (instrument === 'atm' && (!found || /\ba\/?c\b|\bacct\b|\baccount\b|\b[xX*]+\d{3,6}\b/.test(found))) {
+    return 'ATM Withdrawal';
+  }
+  return found ?? 'Unknown';
+}
+
+/**
  * The common debit/credit shape shared by every Indian bank's SMS. A bank
  * module calls this first and only adds its own templates for what it misses.
  */
@@ -96,7 +117,9 @@ export function matchGenericSms(input: EmailInput): ParseResult {
   if (ignored) return { status: 'ignored', reason: ignored };
 
   // Direction: the verb decides. "debited"/"spent"/"withdrawn" vs "credited".
-  const debit = /\b(debited|spent|withdrawn|paid|purchase|deducted)\b/i.test(text);
+  // The noun forms count too: HDFC writes "Cash Withdrawal" and "ATM WDL"
+  // rather than "withdrawn", and those alerts matched no verb at all.
+  const debit = /\b(debited|spent|withdraw(n|al)?|wdl|paid|purchase|deducted)\b/i.test(text);
   const credit = /\b(credited|received|refund(?:ed)?)\b/i.test(text);
   if (!debit && !credit) return { status: 'unparsed' };
 
@@ -106,11 +129,7 @@ export function matchGenericSms(input: EmailInput): ParseResult {
   if (amount == null || amount <= 0) return { status: 'unparsed' };
 
   const instrument = smsInstrument(text);
-  // A withdrawal names no counterparty, so "Unknown" was the merchant for
-  // every cash SMS that didn't spell out the ATM's location — and a list of
-  // "Unknown" rows tells you nothing. Name it for what it is instead; the
-  // seeded rules then file it under Transfers › Cash withdrawal.
-  const merchant = smsMerchant(text) ?? (instrument === 'atm' ? 'ATM Withdrawal' : 'Unknown');
+  const merchant = merchantFor(text, instrument);
 
   return {
     status: 'parsed',
