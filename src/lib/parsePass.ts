@@ -16,8 +16,10 @@ import { parseSms } from './parsers/sms';
 import { normalizeMerchant } from './merchant';
 import type { ParsedTxn } from './parsers/types';
 import { creditCardLast4s } from './creditCards';
+import { isMatchingAutoDebitAlert } from './dedupe';
 
 const DEDUPE_WINDOW_MS = 3 * 60 * 1000; // ±3 minutes
+const AUTO_DEBIT_WINDOW_MS = 12 * 60 * 60 * 1000;
 
 export interface ParsePassResult {
   processed: number;
@@ -33,8 +35,8 @@ export interface ParsePassResult {
  * Returns it, or null.
  */
 async function findDuplicate(userId: number, txn: ParsedTxn) {
-  const lo = new Date(txn.occurredAt.getTime() - DEDUPE_WINDOW_MS);
-  const hi = new Date(txn.occurredAt.getTime() + DEDUPE_WINDOW_MS);
+  const lo = new Date(txn.occurredAt.getTime() - AUTO_DEBIT_WINDOW_MS);
+  const hi = new Date(txn.occurredAt.getTime() + AUTO_DEBIT_WINDOW_MS);
 
   const candidates = await prisma.transaction.findMany({
     where: {
@@ -48,7 +50,14 @@ async function findDuplicate(userId: number, txn: ParsedTxn) {
   for (const c of candidates) {
     // account_last4 must match only when BOTH are non-null.
     if (txn.accountLast4 && c.accountLast4 && txn.accountLast4 !== c.accountLast4) continue;
-    return c;
+    const gap = Math.abs(txn.occurredAt.getTime() - c.occurredAt.getTime());
+    if (gap <= DEDUPE_WINDOW_MS || isMatchingAutoDebitAlert(c, {
+      instrument: txn.instrument,
+      occurredAt: txn.occurredAt,
+      rawMerchant: txn.rawMerchant,
+      merchant: normalizeMerchant(txn.rawMerchant),
+      displayLabel: null,
+    })) return c;
   }
   return null;
 }

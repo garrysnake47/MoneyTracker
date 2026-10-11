@@ -6,8 +6,9 @@
  * in the table. This sweeps them up, and runs as a step of every sync so the
  * ledger self-heals without anyone running a script.
  *
- * Two passes, both restricted to Gmail-derived rows (raw_email_id NOT NULL) so
- * manually added or restored transactions are never touched:
+ * Three passes. The first two are restricted to Gmail-derived rows
+ * (raw_email_id NOT NULL) so manually added or restored transactions are
+ * never touched:
  *
  *   1. exact  — several transactions pointing at the SAME raw email. Only a
  *               concurrent parse can produce these; always a duplicate.
@@ -15,6 +16,11 @@
  *               ±3 min + compatible last4). This is the same rule parsePass
  *               uses to merge sibling alerts for one purchase, applied to rows
  *               that slipped in while two passes ran side by side.
+ *   3. mandate — an auto-debit alert and a later bank/netbanking alert for the
+ *                same mandate. Banks can send these hours apart, so this uses
+ *                a deliberately narrower same-day merchant match. It also
+ *                accepts imported Gmail/SMS rows whose raw-email link was not
+ *                included in the export.
  *
  * The surviving row is the one the user has invested in (locked > categorised >
  * annotated), ties going to the oldest id, and it inherits anything the losers
@@ -25,6 +31,14 @@ import { prisma } from './db';
 import { normalizeMerchant } from './merchant';
 
 const DEDUPE_WINDOW_MS = 3 * 60 * 1000; // ±3 minutes — matches parsePass
+const AUTO_DEBIT_WINDOW_MS = 12 * 60 * 60 * 1000;
+const IST_OFFSET_MS = 330 * 60 * 1000;
+
+const MERCHANT_NOISE = new Set([
+  'AUTO', 'DEBIT', 'ACH', 'NACH', 'MANDATE', 'PAYMENT', 'BANK', 'FINANCIAL',
+  'FINANCE', 'SERVICE', 'SERVICES', 'LIMITED', 'PRIVATE', 'PVT', 'LTD', 'WITH',
+  'UMRN', 'TRANSACTION',
+]);
 
 export interface DedupeResult {
   groups: number; // duplicate clusters found
@@ -55,6 +69,36 @@ function pickKeeper(rows: Row[]): Row {
 /** last4 conflicts only when BOTH rows carry one — same rule as parsePass. */
 function last4Compatible(a: Row, b: Row): boolean {
   return !(a.accountLast4 && b.accountLast4 && a.accountLast4 !== b.accountLast4);
+}
+
+type AutoDebitComparable = Pick<Row, 'instrument' | 'occurredAt' | 'rawMerchant' | 'merchant' | 'displayLabel'>;
+
+function istDay(d: Date): number {
+  return Math.floor((d.getTime() + IST_OFFSET_MS) / 86_400_000);
+}
+
+function merchantTokens(t: AutoDebitComparable): Set<string> {
+  const text = [t.rawMerchant, t.merchant, t.displayLabel].filter(Boolean).join(' ').toUpperCase();
+  return new Set(
+    text
+      .split(/[^A-Z0-9]+/)
+      .filter((token) => token.length >= 4 && !MERCHANT_NOISE.has(token) && !/^\d+$/.test(token)),
+  );
+}
+
+/**
+ * Match the two shapes banks emit for one mandate debit. This intentionally
+ * does not treat two ordinary netbanking rows, or two auto-debit rows, as the
+ * same transaction: exactly one side must be the mandate alert.
+ */
+export function isMatchingAutoDebitAlert(a: AutoDebitComparable, b: AutoDebitComparable): boolean {
+  if ((a.instrument === 'auto_debit') === (b.instrument === 'auto_debit')) return false;
+  const gap = Math.abs(a.occurredAt.getTime() - b.occurredAt.getTime());
+  if (gap > AUTO_DEBIT_WINDOW_MS || istDay(a.occurredAt) !== istDay(b.occurredAt)) return false;
+
+  const aTokens = merchantTokens(a);
+  const bTokens = merchantTokens(b);
+  return [...aTokens].some((token) => bTokens.has(token));
 }
 
 /** Fold the losers' detail into the keeper, then delete them. */
@@ -159,6 +203,45 @@ async function dedupeByFingerprint(userId: number, sinceDays: number | null, app
   return res;
 }
 
+/** Pass 3: a mandate alert and its later account-debit confirmation. */
+async function dedupeAutoDebits(userId: number, sinceDays: number | null, apply: boolean, log: (s: string) => void): Promise<DedupeResult> {
+  const rows = await prisma.transaction.findMany({
+    where: {
+      userId,
+      source: { in: ['gmail', 'sms'] },
+      ...(sinceDays ? { occurredAt: { gte: new Date(Date.now() - sinceDays * 86_400_000) } } : {}),
+    },
+    orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
+  });
+
+  const res: DedupeResult = { groups: 0, removed: 0 };
+  const taken = new Set<number>();
+
+  for (let i = 0; i < rows.length; i++) {
+    const base = rows[i];
+    if (taken.has(base.id) || base.instrument !== 'auto_debit') continue;
+
+    const match = rows.find((candidate) => {
+      if (candidate.id === base.id || taken.has(candidate.id)) return false;
+      if (!candidate.amount.equals(base.amount) || candidate.direction !== base.direction) return false;
+      if (!last4Compatible(base, candidate)) return false;
+      return isMatchingAutoDebitAlert(base, candidate);
+    });
+    if (!match) continue;
+
+    taken.add(base.id);
+    taken.add(match.id);
+    // The auto-debit row is the canonical event; fold any richer categorisation
+    // or bank reference from the confirmation into it.
+    res.groups++;
+    res.removed++;
+    log(`  auto-debit ${base.merchant} ${base.amount}: keep #${base.id}, drop #${match.id}`);
+    if (apply) await collapse(base, [match]);
+  }
+
+  return res;
+}
+
 export interface DedupeOptions {
   /** Only look at transactions this recent in the fingerprint pass. null = all. */
   sinceDays?: number | null;
@@ -174,8 +257,9 @@ export async function dedupeTransactions(userId: number, opts: DedupeOptions = {
 
   const a = await dedupeByEmail(userId, apply, log);
   const b = await dedupeByFingerprint(userId, sinceDays, apply, log);
+  const c = await dedupeAutoDebits(userId, sinceDays, apply, log);
 
-  const res = { groups: a.groups + b.groups, removed: a.removed + b.removed };
+  const res = { groups: a.groups + b.groups + c.groups, removed: a.removed + b.removed + c.removed };
   if (res.removed) console.log(`[dedupe] user ${userId}: removed ${res.removed} duplicate transactions in ${res.groups} clusters`);
   return res;
 }
